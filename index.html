@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Palavras Avançado</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* Estilização dos campos de entrada ao receberem foco */
+        input:focus {
+            outline: 2px solid #3b82f6;
+        }
+
+        /* Estilo para as caixas de Posição Exata (Seção 5 - 1 letra) */
+        .letter-box {
+            width: 45px;
+            height: 45px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Estilo para as caixas de Posição Proibida (Seção 6 - até 4 letras) */
+        .letter-box-multiple {
+            width: 70px;
+            height: 45px;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 🚨 CSS NATIVO DE ALTA PRIORIDADE PARA A GRID DE RESULTADOS 🚨
+           Garante exibição correta mesmo com extensões de ad-block ativos */
+        .container-resultados-puro {
+            display: block !important;
+            width: 100% !important;
+            margin-top: 15px !important;
+        }
+
+        .grid-resultados-puro {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+            gap: 10px !important;
+            padding: 10px !important;
+            width: 100% !important;
+        }
+
+        .botao-palavra-puro {
+            display: block !important;
+            padding: 12px 8px !important;
+            background-color: #f3f4f6 !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 6px !important;
+            color: #1f2937 !important;
+            font-family: monospace !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            cursor: pointer !important;
+            text-decoration: none !important;
+            box-sizing: border-box !important;
+        }
+
+        .botao-palavra-puro:hover {
+            background-color: #dbeafe !important;
+            color: #2563eb !important;
+            border-color: #bfdbfe !important;
+        }
+    </style>
+</head>
+<body class="bg-[#cedde0] text-gray-800 font-sans min-h-screen relative">
+
+    <div id="alerta-customizado" class="hidden fixed bottom-5 right-5 bg-slate-900 text-white p-4 rounded-xl shadow-2xl z-50 border border-slate-700 max-w-sm transition-all duration-300">
+        <div class="flex flex-col gap-2">
+            <p class="font-medium flex items-center gap-2 text-green-400">
+                📋 <span id="alerta-texto-copia">Palavra copiada!</span>
+            </p>
+            <p class="text-sm text-slate-300 border-t border-slate-700 pt-2">
+                Quer ver o significado? 
+                <a id="alerta-link-dicionario" href="#" target="_blank" class="text-blue-400 hover:text-blue-300 font-semibold underline inline-flex items-center gap-1">
+                    Clique aqui 🔗
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        
+        <header class="mb-8 text-center border-b pb-6 border-gray-200">
+            <h1 class="text-3xl font-bold text-blue-600 mb-2">Buscador de Palavras Avançado</h1>
+            <p class="text-gray-600">Filtre palavras por tamanho, letras incluídas, excluídas e posições.</p>
+        </header>
+
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700 flex items-center gap-2">
+                ⚙️ Configuração dos Filtros
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">1. Idioma / Origem dos Dados</label>
+                        <select id="idioma" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white transition">
+                            <optgroup label="Dicionários Gerais">
+                                <option value="pt">Português</option>
+                                <option value="en">Inglês</option>
+                                <option value="es">Espanhol</option>
+                                <option value="fr">Francês</option>
+                                <option value="it">Italiano</option>
+                                <option value="de">Alemão</option>
+                                <option value="nl">Nederlandês</option>
+                            </optgroup>
+                            <optgroup label="Categorias Temáticas">
+                                <option value="animais">🐶 Animais (Português)</option>
+                                <option value="comidas">🍎 Comidas (Português)</option>
+                                <option value="cidades">🏙️ Cidades / Países</option>
+                            </optgroup>
+                            <optgroup label="Avançado">
+                                <option value="custom">Carregar Lista Própria (.txt)</option>
+                            </optgroup>
+                        </select>
+                        
+                        <div id="area-upload" class="hidden mt-2">
+                            <label class="block text-xs text-gray-500 mb-1">Selecione um arquivo (.txt) - Insira o idioma na 1ª linha (ex: pt, en, fr, es):</label>
+                            <input type="file" id="upload-file" accept=".txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">2. Número de Letras (Tamanho)</label>
+                        <input type="number" id="tamanho" min="1" max="20" placeholder="Ex: 5" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white transition" />
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            3. Deve conter (Aceita repetidas. Ex: <span class="font-mono text-blue-600 bg-blue-50 px-1 rounded">aaab</span> para 3As e 1B)
+                        </label>
+                        <input type="text" id="letras-contem" placeholder="Ex: aaab" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white transition" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            4. Letras que <strong class="text-red-600">NÃO PODE</strong> conter
+                        </label>
+                        <input type="text" id="letras-nao-contem" placeholder="Ex: xyz" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white transition" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-gray-100">
+                <label class="block text-sm font-medium text-gray-700 mb-2">5. Letras em Posições Exatas</label>
+                <div id="posicoes-container" class="flex flex-wrap gap-2 py-2">
+                    <p class="text-sm text-gray-400 italic">Insira um número de letras válido para definir as posições.</p>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-gray-100">
+                <label class="block text-sm font-medium text-gray-700 mb-2">6. Letras proibidas por posição (Até 4 letras por caixa)</label>
+                <div id="proibidas-container" class="flex flex-wrap gap-2 py-2">
+                    <p class="text-sm text-gray-400 italic">Insira um número de letras válido para definir as posições.</p>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <button id="btn-limpar" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition font-medium">Limpar Filtros</button>
+                <button id="btn-buscar" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">Filtrar Palavras</button>
+            </div>
+        </div>
+
+        <div id="painel-resultados" class="bg-white rounded-xl shadow-md p-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-3 border-gray-100">
+                <h2 class="text-xl font-semibold text-gray-700">📋 Resultados</h2>
+                <span id="contador" class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full">Aguardando busca...</span>
+            </div>
+            
+            <div class="container-resultados-puro">
+                <div id="lista-resultados" class="grid-resultados-puro"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // TABELA DE CONFIGURAÇÃO DOS DICIONÁRIOS E LISTAS LOCAIS
+        // Mapeia a chave da opção (ID) ao arquivo .txt local e ao link do dicionário
+        // =========================================================================
+        const CONFIG_DICIONARIOS = {
+            pt: {
+                nome: "Português",
+                arquivo: "pt.txt",
+                dicionarioUrl: "https://dicionario.priberam.org/"
+            },
+            en: {
+                nome: "Inglês",
+                arquivo: "en.txt",
+                dicionarioUrl: "https://www.dictionary.com/browse/"
+            },
+            es: {
+                nome: "Espanhol",
+                arquivo: "es.txt",
+                dicionarioUrl: "https://dle.rae.es/"
+            },
+            fr: {
+                nome: "Francês",
+                arquivo: "fr.txt",
+                dicionarioUrl: "https://www.larousse.fr/dictionnaires/francais/"
+            },
+            it: {
+                nome: "Italiano",
+                arquivo: "it.txt",
+                dicionarioUrl: "https://translate.google.com/?sl=auto&tl=pt&text="
+            },
+            de: {
+                nome: "Alemão",
+                arquivo: "de.txt",
+                dicionarioUrl: "https://translate.google.com/?sl=auto&tl=pt&text="
+            },
+            nl: {
+                nome: "Nederlandês",
+                arquivo: "nl.txt",
+                dicionarioUrl: "https://translate.google.com/?sl=auto&tl=pt&text="
+            },
+            animais: {
+                nome: "Animais",
+                arquivo: "animais-pt.txt",
+                dicionarioUrl: "https://dicionario.priberam.org/"
+            },
+            comidas: {
+                nome: "Comidas",
+                arquivo: "comidas-pt.txt",
+                dicionarioUrl: "https://dicionario.priberam.org/"
+            },
+            cidades: {
+                nome: "Cidades",
+                arquivo: "cep-pt.txt",
+                dicionarioUrl: "https://dicionario.priberam.org/"
+            },
+            custom: {
+                nome: "Arquivo Próprio",
+                arquivo: null,
+                dicionarioUrl: "https://translate.google.com/?sl=auto&tl=pt&text="
+            }
+        };
+
+        // Cache em memória para armazenar as listas após serem baixadas
+        const cacheDicionarios = {
+            custom: []
+        };
+
+        // Estado da aplicação
+        let palavrasAtivas = [];
+        let chaveDicionarioAtual = "pt"; 
+        let timeoutAlerta; 
+
+        // Referências aos elementos da DOM
+        const elIdioma = document.getElementById('idioma');
+        const elAreaUpload = document.getElementById('area-upload');
+        const elUploadFile = document.getElementById('upload-file');
+        const elTamanho = document.getElementById('tamanho');
+        const elLetrasContem = document.getElementById('letras-contem');
+        const elLetrasNaoContem = document.getElementById('letras-nao-contem');
+        const elPosicoesContainer = document.getElementById('posicoes-container');
+        const elProibidasContainer = document.getElementById('proibidas-container');
+        const elPainelResultados = document.getElementById('painel-resultados');
+        const elBtnLimpar = document.getElementById('btn-limpar');
+        const elBtnBuscar = document.getElementById('btn-buscar');
+        const elListaResultados = document.getElementById('lista-resultados');
+        const elContador = document.getElementById('contador');
+
+        // Função utilitária: Remove duplicatas e ordena alfabeticamente considerando acentos
+        function processarListaPalavras(arrayPalavras) {
+            const unicas = [...new Set(arrayPalavras.map(p => p.trim().toLowerCase()).filter(Boolean))];
+            return unicas.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        }
+
+        // Função assíncrona: Carrega o arquivo .txt via fetch ou resgata do cache
+        async function carregarDicionario(chave) {
+            chaveDicionarioAtual = chave;
+
+            if (chave === 'custom') {
+                palavrasAtivas = [...cacheDicionarios.custom];
+                return;
+            }
+
+            // Se já foi carregado anteriormente, reaproveita do cache
+            if (cacheDicionarios[chave]) {
+                palavrasAtivas = cacheDicionarios[chave];
+                return;
+            }
+
+            const config = CONFIG_DICIONARIOS[chave];
+            if (!config || !config.arquivo) return;
+
+            // Exibe mensagem visual de carregamento
+            elContador.innerText = `Carregando ${config.nome}...`;
+            elContador.className = 'bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-full';
+
+            try {
+                const resposta = await fetch(config.arquivo);
+                if (!resposta.ok) throw new Error(`Não foi possível abrir o arquivo: ${config.arquivo}`);
+
+                const texto = await resposta.text();
+                const linhas = texto.split(/[\r\n]+/);
+                
+                // Trata e guarda no cache
+                cacheDicionarios[chave] = processarListaPalavras(linhas);
+                palavrasAtivas = cacheDicionarios[chave];
+
+                elContador.innerText = 'Lista carregada com sucesso';
+                elContador.className = 'bg-green-100 text-green-800 text-xs font-bold px-3 py-1.5 rounded-full';
+            } catch (erro) {
+                console.error(erro);
+                alert(`Aviso: O arquivo "${config.arquivo}" não pôde ser carregado.\n\nVerifique se o arquivo .txt está na mesma pasta que este HTML.`);
+                palavrasAtivas = [];
+                limparTelaResultados();
+            }
+        }
+
+        // Função utilitária: Conta a frequência de cada caractere em um array de letras
+        function contarLetras(vetor) {
+            const contagem = {};
+            for (let letra of vetor) { contagem[letra] = (contagem[letra] || 0) + 1; }
+            return contagem;
+        }
+
+        // Restaura a área de resultados para o estado neutro/inicial
+        function limparTelaResultados() {
+            elListaResultados.innerHTML = "";
+            elContador.innerText = 'Aguardando busca...';
+            elContador.className = 'bg-gray-100 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full';
+            
+            const aviso = document.createElement('p');
+            aviso.style.color = "#9ca3af";
+            aviso.style.fontSize = "14px";
+            aviso.style.fontStyle = "italic";
+            aviso.style.textAlign = "center";
+            aviso.style.gridColumn = "1 / -1";
+            aviso.innerText = 'Insira os critérios e clique em "Filtrar Palavras" ou aperte Enter.';
+            elListaResultados.appendChild(aviso);
+        }
+
+        // Evento: Alteração do Seletor de Dicionários / Idiomas
+        elIdioma.addEventListener('change', async (e) => {
+            const chave = e.target.value;
+            if (chave === 'custom') {
+                elAreaUpload.classList.remove('hidden');
+                await carregarDicionario('custom');
+            } else {
+                elAreaUpload.classList.add('hidden');
+                await carregarDicionario(chave);
+            }
+            limparTelaResultados();
+        });
+
+        // Evento: Carregamento de arquivo TXT customizado enviado pelo usuário
+        elUploadFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                let linhas = event.target.result.split(/[\r\n]+/);
+                
+                // Validação e limpeza das palavras
+                const palavrasValidadas = linhas
+                    .map(l => l.trim().toLowerCase())
+                    .filter(l => l.length > 0 && /^[a-zA-Záéíóúâêôãõçüàñäöüß-]+$/.test(l));
+
+                cacheDicionarios.custom = processarListaPalavras(palavrasValidadas);
+                palavrasAtivas = [...cacheDicionarios.custom];
+                
+                alert(`Dicionário próprio carregado! ${palavrasAtivas.length} palavras encontradas.`);
+                limparTelaResultados();
+            };
+            reader.readAsText(file);
+        });
+
+        // Evento: Digitação do Tamanho da Palavra (Gera as caixas das seções 5 e 6)
+        elTamanho.addEventListener('input', () => {
+            const tamanho = parseInt(elTamanho.value);
+            elPosicoesContainer.innerHTML = '';
+            elProibidasContainer.innerHTML = '';
+
+            if (isNaN(tamanho) || tamanho <= 0) {
+                const aviso = '<p class="text-sm text-gray-400 italic text-center w-full">Insira um número de letras válido.</p>';
+                elPosicoesContainer.innerHTML = aviso;
+                elProibidasContainer.innerHTML = aviso;
+                return;
+            }
+
+            // Geração das caixas de input dinâmicas
+            for (let i = 0; i < tamanho; i++) {
+                // -------------------------------------------------------------
+                // Seção 5: Posições Exatas (1 letra + Avanço Automático)
+                // -------------------------------------------------------------
+                const divExata = document.createElement('div');
+                divExata.className = 'flex flex-col items-center';
+                divExata.innerHTML = `<span class="text-xs text-gray-400 mb-1">Pos. ${i+1}</span>
+                                      <input type="text" maxlength="1" class="letter-box border border-gray-300 rounded-md focus:border-blue-500 text-center uppercase font-bold" data-posicao="${i}">`;
+                
+                const inputExato = divExata.querySelector('input');
+                
+                // Avanço automático
+                inputExato.addEventListener('input', function() {
+                    this.value = this.value.toLowerCase().replace(/[^a-z]/g, '');
+                    if (this.value.length === 1) {
+                        const proximosInputs = elPosicoesContainer.querySelectorAll('input');
+                        if (proximosInputs[i + 1]) proximosInputs[i + 1].focus();
+                    }
+                });
+
+                // Apagar e voltar foco
+                inputExato.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && this.value === '') {
+                        const proximosInputs = elPosicoesContainer.querySelectorAll('input');
+                        if (proximosInputs[i - 1]) proximosInputs[i - 1].focus();
+                    }
+                });
+
+                elPosicoesContainer.appendChild(divExata);
+
+                // -------------------------------------------------------------
+                // Seção 6: Posições Proibidas (Até 4 letras por caixa)
+                // -------------------------------------------------------------
+                const divProibida = document.createElement('div');
+                divProibida.className = 'flex flex-col items-center';
+                divProibida.innerHTML = `<span class="text-xs text-gray-400 mb-1">Não pos. ${i+1}</span>
+                                         <input type="text" maxlength="4" placeholder="----" class="letter-box-multiple border border-red-200 bg-red-50 text-red-700 rounded-md focus:border-red-500 text-center uppercase font-bold" data-posicao="${i}">`;
+                
+                const inputProibido = divProibida.querySelector('input');
+                inputProibido.addEventListener('input', function() { 
+                    this.value = this.value.toLowerCase().replace(/[^a-z]/g, ''); 
+                });
+
+                elProibidasContainer.appendChild(divProibida);
+            }
+        });
+
+        // Evento: Tecla Enter nos campos aciona a busca automaticamente
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const tag = e.target.tagName.toLowerCase();
+                if (tag === 'input' || tag === 'select') {
+                    e.preventDefault();
+                    elBtnBuscar.click();
+                }
+            }
+        });
+
+        // Evento: Limpar todos os filtros do formulário
+        elBtnLimpar.addEventListener('click', async () => {
+            elTamanho.value = '';
+            elLetrasContem.value = '';
+            elLetrasNaoContem.value = '';
+            elPosicoesContainer.innerHTML = '<p class="text-sm text-gray-400 italic">Insira um número de letras válido para definir as posições.</p>';
+            elProibidasContainer.innerHTML = '<p class="text-sm text-gray-400 italic">Insira um número de letras válido para definir as posições.</p>';
+            
+            await carregarDicionario(elIdioma.value);
+            limparTelaResultados();
+        });
+
+        // Evento Principal: Execução da Filtragem
+        elBtnBuscar.addEventListener('click', () => {
+            const tamanho = parseInt(elTamanho.value);
+            const contemLetras = elLetrasContem.value.toLowerCase().replace(/\s/g, '').split('').filter(Boolean);
+            const naoContem = elLetrasNaoContem.value.toLowerCase().replace(/\s/g, '').split('').filter(Boolean);
+
+            const contagemExigida = contarLetras(contemLetras);
+
+            // Mapeamento das posições exatas (Seção 5)
+            const posicoesExatas = {};
+            elPosicoesContainer.querySelectorAll('input').forEach(box => {
+                if (box.value) posicoesExatas[box.dataset.posicao] = box.value.toLowerCase();
+            });
+
+            // Mapeamento das posições proibidas (Seção 6)
+            const posicoesProibidas = {};
+            elProibidasContainer.querySelectorAll('input').forEach(box => {
+                if (box.value) posicoesProibidas[box.dataset.posicao] = box.value.toLowerCase().split('');
+            });
+
+            // Aplicação dos filtros sobre a lista ativa
+            const filtradas = palavrasAtivas.filter(palavra => {
+                const palavraNormalizada = palavra.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+                // 1. Tamanho
+                if (!isNaN(tamanho) && palavraNormalizada.length !== tamanho) return false;
+
+                // 2. Letras proibidas globais
+                for (let letra of naoContem) {
+                    if (palavraNormalizada.includes(letra)) return false;
+                }
+
+                // 3. Letras obrigatórias globais e contagem de repetição
+                const contagemPalavra = contarLetras(palavraNormalizada.split(''));
+                for (let letra in contagemExigida) {
+                    if (!contagemPalavra[letra] || contagemPalavra[letra] < contagemExigida[letra]) return false;
+                }
+
+                // 4. Posições exatas
+                for (let pos in posicoesExatas) {
+                    const idx = parseInt(pos);
+                    if (palavraNormalizada[idx] !== posicoesExatas[pos]) return false;
+                }
+
+                // 5. Posições proibidas
+                for (let pos in posicoesProibidas) {
+                    const idx = parseInt(pos);
+                    if (posicoesProibidas[pos].includes(palavraNormalizada[idx])) return false;
+                }
+
+                return true;
+            });
+
+            // Exibe os resultados
+            atualizarResultados(filtradas);
+
+            // Rolagem suave garantida
+            setTimeout(() => {
+                window.scrollTo({
+                    top: elPainelResultados.offsetTop - 15,
+                    behavior: 'smooth'
+                });
+            }, 40);
+        });
+
+        // Renderiza os botões das palavras filtradas
+        function atualizarResultados(lista) {
+            elListaResultados.innerHTML = ""; 
+            
+            if (lista.length === 0) {
+                elContador.innerText = '0 palavras encontradas';
+                elContador.className = 'bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-full';
+                
+                const aviso = document.createElement('p');
+                aviso.style.color = "#9ca3af";
+                aviso.style.fontSize = "14px";
+                aviso.style.fontStyle = "italic";
+                aviso.style.textAlign = "center";
+                aviso.style.gridColumn = "1 / -1";
+                aviso.innerText = 'Nenhuma palavra corresponde aos critérios informados.';
+                elListaResultados.appendChild(aviso);
+                return;
+            }
+
+            elContador.innerText = `${lista.length} palavras encontradas`;
+            elContador.className = 'bg-green-100 text-green-800 text-xs font-bold px-3 py-1.5 rounded-full';
+
+            const alertaCustom = document.getElementById('alerta-customizado');
+            const alertaTextoCopia = document.getElementById('alerta-texto-copia');
+            const alertaLinkDicionario = document.getElementById('alerta-link-dicionario');
+
+            // Resgata as configurações do dicionário selecionado no momento
+            const configAtual = CONFIG_DICIONARIOS[chaveDicionarioAtual] || CONFIG_DICIONARIOS.pt;
+
+            lista.forEach(palavra => {
+                const item = document.createElement('div');
+                item.className = 'botao-palavra-puro';
+                item.innerText = palavra;
+                
+                item.addEventListener('click', () => {
+                    navigator.clipboard.writeText(palavra);
+                    
+                    // Monta a URL do dicionário dinamica usando a tabela de configuracao
+                    const urlDicionario = `${configAtual.dicionarioUrl}${encodeURIComponent(palavra)}`;
+                    
+                    alertaTextoCopia.innerText = `Palavra "${palavra.toUpperCase()}" copiada!`;
+                    alertaLinkDicionario.href = urlDicionario;
+                    alertaCustom.classList.remove('hidden');
+
+                    clearTimeout(timeoutAlerta);
+                    timeoutAlerta = setTimeout(() => { alertaCustom.classList.add('hidden'); }, 6000);
+                });
+                
+                elListaResultados.appendChild(item);
+            });
+        }
+
+        // Carrega o dicionário padrão ("pt.txt") assim que abre a página
+        carregarDicionario('pt');
+        limparTelaResultados();
+    </script>
+</body>
+</html>
