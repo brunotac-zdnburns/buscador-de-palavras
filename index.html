@@ -34,8 +34,7 @@
             letter-spacing: 1px;
         }
 
-        /* 🚨 CSS NATIVO DE ALTA PRIORIDADE PARA A GRID DE RESULTADOS 🚨
-           Garante exibição correta mesmo com extensões de ad-block ativos */
+        /* 🚨 CSS NATIVO DE ALTA PRIORIDADE PARA A GRID DE RESULTADOS 🚨 */
         .container-resultados-puro {
             display: block !important;
             width: 100% !important;
@@ -70,6 +69,16 @@
             background-color: #dbeafe !important;
             color: #2563eb !important;
             border-color: #bfdbfe !important;
+        }
+
+        /* Remove as setas nativas do input de número */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
         }
     </style>
 </head>
@@ -126,14 +135,21 @@
                         </select>
                         
                         <div id="area-upload" class="hidden mt-2">
-                            <label class="block text-xs text-gray-500 mb-1">Selecione um arquivo (.txt) - Insira o idioma na 1ª linha (ex: pt, en, fr, es):</label>
+                            <label class="block text-xs text-gray-500 mb-1">Selecione um arquivo (.txt) contendo uma palavra por linha:</label>
                             <input type="file" id="upload-file" accept=".txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                         </div>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">2. Número de Letras (Tamanho)</label>
-                        <input type="number" id="tamanho" min="1" max="20" placeholder="Ex: 5" class="w-full p-2.5 border rounded-lg bg-gray-50 focus:bg-white transition" />
+                        <div class="relative flex items-center">
+                            <input type="number" id="tamanho" min="3" max="8" value="5" placeholder="Qualquer tamanho" class="w-full p-2.5 pr-20 border rounded-lg bg-gray-50 focus:bg-white transition" />
+                            
+                            <div class="absolute right-1 flex items-center gap-1">
+                                <button type="button" id="btn-diminuir-tamanho" class="w-7 h-7 bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold text-sm rounded-md transition flex items-center justify-center border border-blue-200" title="Diminuir tamanho (ou alternar para Vazio)">-</button>
+                                <button type="button" id="btn-aumentar-tamanho" class="w-7 h-7 bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold text-sm rounded-md transition flex items-center justify-center border border-blue-200" title="Aumentar tamanho (ou alternar para Vazio)">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -155,17 +171,13 @@
             </div>
 
             <div class="mt-6 pt-6 border-t border-gray-100">
-                <label class="block text-sm font-medium text-gray-700 mb-2">5. Letras em Posições Exatas</label>
-                <div id="posicoes-container" class="flex flex-wrap gap-2 py-2">
-                    <p class="text-sm text-gray-400 italic">Insira um número de letras válido para definir as posições.</p>
-                </div>
+                <label id="label-sec-5" class="block text-sm font-medium text-gray-700 mb-2">5. Letras em Posições Exatas</label>
+                <div id="posicoes-container" class="flex flex-wrap gap-2 py-2"></div>
             </div>
 
             <div class="mt-4 pt-4 border-t border-gray-100">
-                <label class="block text-sm font-medium text-gray-700 mb-2">6. Letras proibidas por posição (Até 4 letras por caixa)</label>
-                <div id="proibidas-container" class="flex flex-wrap gap-2 py-2">
-                    <p class="text-sm text-gray-400 italic">Insira um número de letras válido para definir as posições.</p>
-                </div>
+                <label id="label-sec-6" class="block text-sm font-medium text-gray-700 mb-2">6. Letras proibidas por posição</label>
+                <div id="proibidas-container" class="flex flex-wrap gap-2 py-2"></div>
             </div>
 
             <div class="mt-6 flex justify-end gap-3">
@@ -188,9 +200,13 @@
 
     <script>
         // =========================================================================
-        // TABELA DE CONFIGURAÇÃO DOS DICIONÁRIOS E LISTAS LOCAIS
-        // Mapeia a chave da opção (ID) ao arquivo .txt local e ao link do dicionário
+        // CONFIGURAÇÃO DE LIMITE DE PALAVRAS (TESTE DE VOLUMETRIA)
+        // Altere este valor para limitar quantas palavras mais frequentes serão carregadas
+        // Exemplos: 20000, 30000, 40000, ou Infinity (para carregar o arquivo inteiro)
         // =========================================================================
+        const LIMITE_PALAVRAS = 40000;
+
+        // TABELA DE CONFIGURAÇÃO DOS DICIONÁRIOS
         const CONFIG_DICIONARIOS = {
             pt: {
                 nome: "Português",
@@ -249,23 +265,24 @@
             }
         };
 
-        // Cache em memória para armazenar as listas após serem baixadas
         const cacheDicionarios = {
             custom: []
         };
 
-        // Estado da aplicação
         let palavrasAtivas = [];
         let chaveDicionarioAtual = "pt"; 
         let timeoutAlerta; 
 
-        // Referências aos elementos da DOM
         const elIdioma = document.getElementById('idioma');
         const elAreaUpload = document.getElementById('area-upload');
         const elUploadFile = document.getElementById('upload-file');
         const elTamanho = document.getElementById('tamanho');
+        const elBtnAumentarTamanho = document.getElementById('btn-aumentar-tamanho');
+        const elBtnDiminuirTamanho = document.getElementById('btn-diminuir-tamanho');
         const elLetrasContem = document.getElementById('letras-contem');
         const elLetrasNaoContem = document.getElementById('letras-nao-contem');
+        const elLabelSec5 = document.getElementById('label-sec-5');
+        const elLabelSec6 = document.getElementById('label-sec-6');
         const elPosicoesContainer = document.getElementById('posicoes-container');
         const elProibidasContainer = document.getElementById('proibidas-container');
         const elPainelResultados = document.getElementById('painel-resultados');
@@ -274,31 +291,34 @@
         const elListaResultados = document.getElementById('lista-resultados');
         const elContador = document.getElementById('contador');
 
-        // Função utilitária: Remove duplicatas e ordena alfabeticamente considerando acentos
         function processarListaPalavras(arrayPalavras) {
             const unicas = [...new Set(arrayPalavras.map(p => p.trim().toLowerCase()).filter(Boolean))];
             return unicas.sort((a, b) => a.localeCompare(b, 'pt-BR'));
         }
 
-        // Função assíncrona: Carrega o arquivo .txt via fetch ou resgata do cache
+        function atualizarMensagemListaCarregada(quantidade) {
+            elContador.innerText = `Lista carregada com ${quantidade} palavras`;
+            elContador.className = 'bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1.5 rounded-full';
+        }
+
         async function carregarDicionario(chave) {
             chaveDicionarioAtual = chave;
 
             if (chave === 'custom') {
                 palavrasAtivas = [...cacheDicionarios.custom];
+                atualizarMensagemListaCarregada(palavrasAtivas.length);
                 return;
             }
 
-            // Se já foi carregado anteriormente, reaproveita do cache
             if (cacheDicionarios[chave]) {
                 palavrasAtivas = cacheDicionarios[chave];
+                atualizarMensagemListaCarregada(palavrasAtivas.length);
                 return;
             }
 
             const config = CONFIG_DICIONARIOS[chave];
             if (!config || !config.arquivo) return;
 
-            // Exibe mensagem visual de carregamento
             elContador.innerText = `Carregando ${config.nome}...`;
             elContador.className = 'bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1.5 rounded-full';
 
@@ -307,14 +327,18 @@
                 if (!resposta.ok) throw new Error(`Não foi possível abrir o arquivo: ${config.arquivo}`);
 
                 const texto = await resposta.text();
-                const linhas = texto.split(/[\r\n]+/);
                 
-                // Trata e guarda no cache
-                cacheDicionarios[chave] = processarListaPalavras(linhas);
+                // Quebra o arquivo mantendo a ordem original de frequência
+                const linhas = texto.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+                
+                // Aplica o corte limitando às top N palavras do Wordfreq
+                const linhasLimitadas = linhas.slice(0, LIMITE_PALAVRAS);
+                
+                // Ordena alfabeticamente para exibição
+                cacheDicionarios[chave] = processarListaPalavras(linhasLimitadas);
                 palavrasAtivas = cacheDicionarios[chave];
 
-                elContador.innerText = 'Lista carregada com sucesso';
-                elContador.className = 'bg-green-100 text-green-800 text-xs font-bold px-3 py-1.5 rounded-full';
+                atualizarMensagemListaCarregada(palavrasAtivas.length);
             } catch (erro) {
                 console.error(erro);
                 alert(`Aviso: O arquivo "${config.arquivo}" não pôde ser carregado.\n\nVerifique se o arquivo .txt está na mesma pasta que este HTML.`);
@@ -323,18 +347,20 @@
             }
         }
 
-        // Função utilitária: Conta a frequência de cada caractere em um array de letras
         function contarLetras(vetor) {
             const contagem = {};
             for (let letra of vetor) { contagem[letra] = (contagem[letra] || 0) + 1; }
             return contagem;
         }
 
-        // Restaura a área de resultados para o estado neutro/inicial
         function limparTelaResultados() {
             elListaResultados.innerHTML = "";
-            elContador.innerText = 'Aguardando busca...';
-            elContador.className = 'bg-gray-100 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full';
+            if (palavrasAtivas.length > 0) {
+                atualizarMensagemListaCarregada(palavrasAtivas.length);
+            } else {
+                elContador.innerText = 'Aguardando busca...';
+                elContador.className = 'bg-gray-100 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full';
+            }
             
             const aviso = document.createElement('p');
             aviso.style.color = "#9ca3af";
@@ -346,7 +372,6 @@
             elListaResultados.appendChild(aviso);
         }
 
-        // Evento: Alteração do Seletor de Dicionários / Idiomas
         elIdioma.addEventListener('change', async (e) => {
             const chave = e.target.value;
             if (chave === 'custom') {
@@ -359,47 +384,109 @@
             limparTelaResultados();
         });
 
-        // Evento: Carregamento de arquivo TXT customizado enviado pelo usuário
         elUploadFile.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             reader.onload = (event) => {
-                let linhas = event.target.result.split(/[\r\n]+/);
-                
-                // Validação e limpeza das palavras
-                const palavrasValidadas = linhas
+                let linhas = event.target.result.split(/[\r\n]+/)
                     .map(l => l.trim().toLowerCase())
                     .filter(l => l.length > 0 && /^[a-zA-Záéíóúâêôãõçüàñäöüß-]+$/.test(l));
 
-                cacheDicionarios.custom = processarListaPalavras(palavrasValidadas);
+                // Corta as top N palavras do upload customizado
+                const linhasLimitadas = linhas.slice(0, LIMITE_PALAVRAS);
+
+                cacheDicionarios.custom = processarListaPalavras(linhasLimitadas);
                 palavrasAtivas = [...cacheDicionarios.custom];
                 
-                alert(`Dicionário próprio carregado! ${palavrasAtivas.length} palavras encontradas.`);
+                atualizarMensagemListaCarregada(palavrasAtivas.length);
                 limparTelaResultados();
             };
             reader.readAsText(file);
         });
 
-        // Evento: Digitação do Tamanho da Palavra (Gera as caixas das seções 5 e 6)
+        // LÓGICA DOS BOTÕES DUPLOS (+ e -)
+        elBtnAumentarTamanho.addEventListener('click', () => {
+            const valorAtual = elTamanho.value.trim();
+            if (valorAtual === '') {
+                elTamanho.value = 3;
+            } else {
+                const num = parseInt(valorAtual);
+                if (num >= 3 && num < 8) {
+                    elTamanho.value = num + 1;
+                } else {
+                    elTamanho.value = '';
+                }
+            }
+            elTamanho.dispatchEvent(new Event('input'));
+        });
+
+        elBtnDiminuirTamanho.addEventListener('click', () => {
+            const valorAtual = elTamanho.value.trim();
+            if (valorAtual === '') {
+                elTamanho.value = 8;
+            } else {
+                const num = parseInt(valorAtual);
+                if (num > 3 && num <= 8) {
+                    elTamanho.value = num - 1;
+                } else {
+                    elTamanho.value = '';
+                }
+            }
+            elTamanho.dispatchEvent(new Event('input'));
+        });
+
         elTamanho.addEventListener('input', () => {
             const tamanho = parseInt(elTamanho.value);
             elPosicoesContainer.innerHTML = '';
             elProibidasContainer.innerHTML = '';
 
             if (isNaN(tamanho) || tamanho <= 0) {
-                const aviso = '<p class="text-sm text-gray-400 italic text-center w-full">Insira um número de letras válido.</p>';
-                elPosicoesContainer.innerHTML = aviso;
-                elProibidasContainer.innerHTML = aviso;
+                elLabelSec5.innerText = '5. Filtros de Início e Fim (Obrigatórios)';
+                elLabelSec6.innerText = '6. Filtros de Início e Fim (Proibidos)';
+
+                elPosicoesContainer.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Começar com:</label>
+                            <input type="text" id="comeca-com" placeholder="Ex: re" class="w-full p-2 border rounded-lg bg-gray-50 focus:bg-white transition" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Terminar com:</label>
+                            <input type="text" id="termina-com" placeholder="Ex: ção" class="w-full p-2 border rounded-lg bg-gray-50 focus:bg-white transition" />
+                        </div>
+                    </div>
+                `;
+
+                elProibidasContainer.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                        <div>
+                            <label class="block text-xs font-medium text-red-600 mb-1">NÃO começar com:</label>
+                            <input type="text" id="nao-comeca-com" placeholder="Ex: des" class="w-full p-2 border border-red-200 bg-red-50 focus:bg-white transition" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-red-600 mb-1">NÃO terminar com:</label>
+                            <input type="text" id="nao-termina-com" placeholder="Ex: mente" class="w-full p-2 border border-red-200 bg-red-50 focus:bg-white transition" />
+                        </div>
+                    </div>
+                `;
+
+                ['comeca-com', 'termina-com', 'nao-comeca-com', 'nao-termina-com'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.addEventListener('input', function() {
+                            this.value = this.value.toLowerCase().replace(/\s/g, '');
+                        });
+                    }
+                });
                 return;
             }
 
-            // Geração das caixas de input dinâmicas
+            elLabelSec5.innerText = '5. Letras em Posições Exatas';
+            elLabelSec6.innerText = '6. Letras proibidas por posição (Até 4 letras por caixa)';
+
             for (let i = 0; i < tamanho; i++) {
-                // -------------------------------------------------------------
-                // Seção 5: Posições Exatas (1 letra + Avanço Automático)
-                // -------------------------------------------------------------
                 const divExata = document.createElement('div');
                 divExata.className = 'flex flex-col items-center';
                 divExata.innerHTML = `<span class="text-xs text-gray-400 mb-1">Pos. ${i+1}</span>
@@ -407,7 +494,6 @@
                 
                 const inputExato = divExata.querySelector('input');
                 
-                // Avanço automático
                 inputExato.addEventListener('input', function() {
                     this.value = this.value.toLowerCase().replace(/[^a-z]/g, '');
                     if (this.value.length === 1) {
@@ -416,7 +502,6 @@
                     }
                 });
 
-                // Apagar e voltar foco
                 inputExato.addEventListener('keydown', function(e) {
                     if (e.key === 'Backspace' && this.value === '') {
                         const proximosInputs = elPosicoesContainer.querySelectorAll('input');
@@ -426,9 +511,6 @@
 
                 elPosicoesContainer.appendChild(divExata);
 
-                // -------------------------------------------------------------
-                // Seção 6: Posições Proibidas (Até 4 letras por caixa)
-                // -------------------------------------------------------------
                 const divProibida = document.createElement('div');
                 divProibida.className = 'flex flex-col items-center';
                 divProibida.innerHTML = `<span class="text-xs text-gray-400 mb-1">Não pos. ${i+1}</span>
@@ -443,7 +525,6 @@
             }
         });
 
-        // Evento: Tecla Enter nos campos aciona a busca automaticamente
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const tag = e.target.tagName.toLowerCase();
@@ -454,19 +535,17 @@
             }
         });
 
-        // Evento: Limpar todos os filtros do formulário
         elBtnLimpar.addEventListener('click', async () => {
-            elTamanho.value = '';
+            elTamanho.value = '5';
             elLetrasContem.value = '';
             elLetrasNaoContem.value = '';
-            elPosicoesContainer.innerHTML = '<p class="text-sm text-gray-400 italic">Insira um número de letras válido para definir as posições.</p>';
-            elProibidasContainer.innerHTML = '<p class="text-sm text-gray-400 italic">Insira um número de letras válido para definir as posições.</p>';
+            
+            elTamanho.dispatchEvent(new Event('input'));
             
             await carregarDicionario(elIdioma.value);
             limparTelaResultados();
         });
 
-        // Evento Principal: Execução da Filtragem
         elBtnBuscar.addEventListener('click', () => {
             const tamanho = parseInt(elTamanho.value);
             const contemLetras = elLetrasContem.value.toLowerCase().replace(/\s/g, '').split('').filter(Boolean);
@@ -474,55 +553,66 @@
 
             const contagemExigida = contarLetras(contemLetras);
 
-            // Mapeamento das posições exatas (Seção 5)
+            let comecaCom = "", terminaCom = "", naoComecaCom = "", naoTerminaCom = "";
             const posicoesExatas = {};
-            elPosicoesContainer.querySelectorAll('input').forEach(box => {
-                if (box.value) posicoesExatas[box.dataset.posicao] = box.value.toLowerCase();
-            });
-
-            // Mapeamento das posições proibidas (Seção 6)
             const posicoesProibidas = {};
-            elProibidasContainer.querySelectorAll('input').forEach(box => {
-                if (box.value) posicoesProibidas[box.dataset.posicao] = box.value.toLowerCase().split('');
-            });
 
-            // Aplicação dos filtros sobre a lista ativa
+            if (isNaN(tamanho) || tamanho <= 0) {
+                const elComeca = document.getElementById('comeca-com');
+                const elTermina = document.getElementById('termina-com');
+                const elNaoComeca = document.getElementById('nao-comeca-com');
+                const elNaoTermina = document.getElementById('nao-termina-com');
+
+                if (elComeca) comecaCom = elComeca.value.trim().toLowerCase();
+                if (elTermina) terminaCom = elTermina.value.trim().toLowerCase();
+                if (elNaoComeca) naoComecaCom = elNaoComeca.value.trim().toLowerCase();
+                if (elNaoTermina) naoTerminaCom = elNaoTermina.value.trim().toLowerCase();
+            } else {
+                elPosicoesContainer.querySelectorAll('input').forEach(box => {
+                    if (box.value) posicoesExatas[box.dataset.posicao] = box.value.toLowerCase();
+                });
+
+                elProibidasContainer.querySelectorAll('input').forEach(box => {
+                    if (box.value) posicoesProibidas[box.dataset.posicao] = box.value.toLowerCase().split('');
+                });
+            }
+
             const filtradas = palavrasAtivas.filter(palavra => {
                 const palavraNormalizada = palavra.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-                // 1. Tamanho
                 if (!isNaN(tamanho) && palavraNormalizada.length !== tamanho) return false;
 
-                // 2. Letras proibidas globais
                 for (let letra of naoContem) {
                     if (palavraNormalizada.includes(letra)) return false;
                 }
 
-                // 3. Letras obrigatórias globais e contagem de repetição
                 const contagemPalavra = contarLetras(palavraNormalizada.split(''));
                 for (let letra in contagemExigida) {
                     if (!contagemPalavra[letra] || contagemPalavra[letra] < contagemExigida[letra]) return false;
                 }
 
-                // 4. Posições exatas
-                for (let pos in posicoesExatas) {
-                    const idx = parseInt(pos);
-                    if (palavraNormalizada[idx] !== posicoesExatas[pos]) return false;
-                }
+                if (isNaN(tamanho) || tamanho <= 0) {
+                    if (comecaCom && !palavraNormalizada.startsWith(comecaCom)) return false;
+                    if (terminaCom && !palavraNormalizada.endsWith(terminaCom)) return false;
+                    if (naoComecaCom && palavraNormalizada.startsWith(naoComecaCom)) return false;
+                    if (naoTerminaCom && palavraNormalizada.endsWith(naoTerminaCom)) return false;
+                } else {
+                    for (let pos in posicoesExatas) {
+                        const idx = parseInt(pos);
+                        if (palavraNormalizada[idx] !== posicoesExatas[pos]) return false;
+                    }
 
-                // 5. Posições proibidas
-                for (let pos in posicoesProibidas) {
-                    const idx = parseInt(pos);
-                    if (posicoesProibidas[pos].includes(palavraNormalizada[idx])) return false;
+                    for (let pos in posicoesProibidas) {
+                        const idx = parseInt(pos);
+                        if (posicoesProibidas[pos].includes(palavraNormalizada[idx])) return false;
+                    }
                 }
 
                 return true;
             });
 
-            // Exibe os resultados
             atualizarResultados(filtradas);
 
-            // Rolagem suave garantida
             setTimeout(() => {
                 window.scrollTo({
                     top: elPainelResultados.offsetTop - 15,
@@ -531,7 +621,6 @@
             }, 40);
         });
 
-        // Renderiza os botões das palavras filtradas
         function atualizarResultados(lista) {
             elListaResultados.innerHTML = ""; 
             
@@ -557,7 +646,6 @@
             const alertaTextoCopia = document.getElementById('alerta-texto-copia');
             const alertaLinkDicionario = document.getElementById('alerta-link-dicionario');
 
-            // Resgata as configurações do dicionário selecionado no momento
             const configAtual = CONFIG_DICIONARIOS[chaveDicionarioAtual] || CONFIG_DICIONARIOS.pt;
 
             lista.forEach(palavra => {
@@ -568,7 +656,6 @@
                 item.addEventListener('click', () => {
                     navigator.clipboard.writeText(palavra);
                     
-                    // Monta a URL do dicionário dinamica usando a tabela de configuracao
                     const urlDicionario = `${configAtual.dicionarioUrl}${encodeURIComponent(palavra)}`;
                     
                     alertaTextoCopia.innerText = `Palavra "${palavra.toUpperCase()}" copiada!`;
@@ -583,9 +670,9 @@
             });
         }
 
-        // Carrega o dicionário padrão ("pt.txt") assim que abre a página
+        // Inicialização padrão da página
+        elTamanho.dispatchEvent(new Event('input'));
         carregarDicionario('pt');
-        limparTelaResultados();
     </script>
 </body>
 </html>
