@@ -1,0 +1,77 @@
+
+Projeto pessoal de elaboração de páginas (ferramentas) online para uso público
+
+Autor: Bruno Teixeira de Alvarenga Cunha
+Data de início: 16/07/2026
+
+============================================
+Ideias de ferramentas:
+
+  Buscador de palavras
+  Jogo da velha dinâmico
+  Desenhe com a tartaruga
+  Edição de imagens (troca de cores)
+  Criação de música a partir de uma imagem
+  Avaliar potencial de uso do Desafio da Rainha e do Magic (pascal)
+
+============================================
+
+Projeto 01: Buscador de palavras
+
+Funções:
+  Buscar palavras em diversos idiomas
+  Mostrar as palavras com links para o significado em dicionários conceituados
+  Reunir pontos positivos de buscadores conhecidos (e melhorar continuamente)
+  Tentar implementar seleção de temas, como buscar apenas nomes de animais
+
+  Página especial dedicada ao WoW (words of wonder): gera/busca várias palavras que contenham apenas as letras informadas, com tamanhos diversos
+
+Projeto:
+  Página principal
+  Código JS
+  Fontes de palavras
+  Construção dos links para dicionários
+
+Fontes de palavras:
+  https://github.com/frekwencja/most-common-words-multilingual
+  https://github.com/fserb/pt-br/tree/master
+  https://github.com/3b1b/videos/blob/master/_2022/wordle/data/allowed_words.txt
+  https://github.com/tabatkins/wordle-list
+
+Dicionários:
+  "https://translate.google.com/?sl=auto&tl=pt&text="
+  "https://dicionario.priberam.org/"
+  "https://www.dictionary.com/browse/"
+  "https://dle.rae.es/"
+  "https://www.larousse.fr/dictionnaires/francais/"
+
+Links externos:
+  Quero ter também um espaço para exibir links para sites de terceiros que eu gosto e estão relacionados a esse tema...
+	termo
+	wordle
+	priberam
+	dictionary
+	...
+
+Propagandas:
+  Definir locais mais adequados para as propagandas
+  Definir os temas permitidos
+  Definir temas ou marcas específicas proibidos
+
+Cores:
+	:root {
+		--cor-fundo-app: #f3f4f6; /* 💡 ALTERE AQUI (Ex: #e0f2fe para azul claro, #fef08a para amarelo) */
+	}
+	ou
+	<body class="bg-gray-50 text-gray-800 font-sans min-h-screen relative">
+	bg-[#1A2B3C]
+	#9bb6e0
+	
+	alguns caracteres especiais: 📋 🔗 🔍 ⚙ 🐶 🍎 🏙️ [ðŸ” (lupa)]
+
+Talvez:
+  outro ajuste necessário é indicar o dicionário priberam para ser usado nas listas pré-carregadas no código fonte (animais, comida, cidades).
+
+
+
+
