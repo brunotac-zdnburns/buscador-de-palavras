@@ -100,9 +100,13 @@
 
     <div class="max-w-4xl mx-auto px-4 py-8">
         
-        <header class="mb-8 text-center border-b pb-6 border-gray-200">
-            <h1 class="text-3xl font-bold text-blue-600 mb-2">Buscador de Palavras Avançado</h1>
-            <p class="text-gray-600">Filtre palavras por tamanho, letras incluídas, excluídas e posições.</p>
+        <header class="mb-8 text-center border-b pb-6 border-gray-200 relative">
+            <a href="../" class="inline-flex items-center gap-2 px-3.5 py-1.5 text-sm font-medium text-slate-600 bg-white/80 hover:bg-white hover:text-blue-600 border border-slate-300 rounded-lg shadow-sm transition-all sm:absolute sm:left-0 sm:top-1 mb-4 sm:mb-0">
+                ← Voltar ao Hub
+            </a>
+
+            <h1 class="text-3xl font-bold text-blue-600 mb-2">Caça-Palavras Avançado</h1>
+            <p class="text-gray-600">Encontre palavras por letras permitidas, posições exatas e combinações de início e fim.</p>
         </header>
 
         <div class="bg-white rounded-xl shadow-md p-6 mb-8">
@@ -204,7 +208,7 @@
         // Altere este valor para limitar quantas palavras mais frequentes serão carregadas
         // Exemplos: 20000, 30000, 40000, ou Infinity (para carregar o arquivo inteiro)
         // =========================================================================
-        const LIMITE_PALAVRAS = 20000;
+        const LIMITE_PALAVRAS = 40000;
 
         // TABELA DE CONFIGURAÇÃO DOS DICIONÁRIOS
         const CONFIG_DICIONARIOS = {
@@ -231,31 +235,31 @@
             it: {
                 nome: "Italiano",
                 arquivo: "it.txt",
-                dicionarioUrl: "https://translate.google.com/?sl=auto&tl=pt&text="
+                dicionarioUrl: "https://translate.google.com/?sl=it&tl=pt&text="
             },
             de: {
                 nome: "Alemão",
                 arquivo: "de.txt",
-                dicionarioUrl: "https://translate.google.com/?sl=auto&tl=pt&text="
+                dicionarioUrl: "https://translate.google.com/?sl=de&tl=pt&text="
             },
             nl: {
                 nome: "Nederlandês",
                 arquivo: "nl.txt",
-                dicionarioUrl: "https://translate.google.com/?sl=auto&tl=pt&text="
+                dicionarioUrl: "https://translate.google.com/?sl=nl&tl=pt&text="
             },
             animais: {
                 nome: "Animais",
-                arquivo: "animais-pt.txt",
+                arquivo: "pt-animais.txt",
                 dicionarioUrl: "https://dicionario.priberam.org/"
             },
             comidas: {
                 nome: "Comidas",
-                arquivo: "comidas-pt.txt",
+                arquivo: "pt-comidas.txt",
                 dicionarioUrl: "https://dicionario.priberam.org/"
             },
             cidades: {
                 nome: "Cidades",
-                arquivo: "cep-pt.txt",
+                arquivo: "pt-cep.txt",
                 dicionarioUrl: "https://dicionario.priberam.org/"
             },
             custom: {
