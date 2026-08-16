@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Magic: The Gathering - Edição Retrô Pascal</title>
+  <style>
+    :root {
+      --crt-bg: #000000;
+      --crt-text: #00ff66;
+      --crt-border: #004d1a;
+      --cyan-color: #00ffff;
+      --green-color: #00ff66;
+      --white-color: #ffffff;
+    }
+
+    body {
+      background-color: #080808;
+      color: #eee;
+      font-family: 'Courier New', Courier, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: var(--cyan-color);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    /* Seletor de Temas de Cores */
+    .theme-selector {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-theme {
+      background: #111;
+      border: 1px solid #444;
+      color: #ccc;
+      font-family: inherit;
+      font-size: 11px;
+      padding: 4px 8px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+
+    .btn-theme:hover {
+      border-color: #fff;
+      color: #fff;
+    }
+
+    /* Tela estilo Monitor CRT */
+    .crt-terminal {
+      background-color: var(--crt-bg);
+      color: var(--crt-text);
+      border: 3px solid var(--crt-border);
+      box-shadow: 0 0 18px rgba(0, 255, 102, 0.2);
+      border-radius: 6px;
+      width: 100%;
+      max-width: 780px;
+      padding: 15px;
+      box-sizing: border-box;
+      min-height: 480px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Buffer de exibição ASCII */
+    #crtDisplay {
+      white-space: pre;
+      font-size: 14px;
+      line-height: 15px;
+      font-weight: bold;
+      overflow-x: auto;
+      margin-bottom: 10px;
+      min-height: 280px;
+    }
+
+    /* Classes auxiliares para cores na abertura */
+    .color-cyan { color: var(--cyan-color) !important; }
+    .color-green { color: var(--green-color) !important; }
+
+    /* Painel Interativo de Cartas */
+    .interactive-panel {
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px dashed var(--crt-border);
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    .prompt-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: var(--white-color);
+    }
+
+    .card-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .card-button {
+      background-color: #000;
+      color: var(--crt-text);
+      border: 1px solid var(--crt-text);
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.15s ease-in-out;
+    }
+
+    .card-button:hover:not(:disabled) {
+      background-color: var(--crt-text);
+      color: #000;
+      box-shadow: 0 0 8px var(--crt-text);
+    }
+
+    .card-button:disabled {
+      border-color: #333;
+      color: #555;
+      cursor: not-allowed;
+    }
+
+    .btn-action {
+      background-color: var(--cyan-color);
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 3px;
+      margin-right: 5px;
+      margin-top: 5px;
+    }
+
+    .btn-action:hover {
+      background-color: #fff;
+      box-shadow: 0 0 10px #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>⚔️ Magic: The Gathering (Pascal CRT) ⚔️</h1>
+
+  <div class="theme-selector">
+    <span style="font-size: 12px; align-self: center; color: #aaa;">Tema:</span>
+    <button class="btn-theme" onclick="setTema('#000000', '#00ff66', '#004d1a')">Verde Retrô</button>
+    <button class="btn-theme" onclick="setTema('#000000', '#00ffff', '#005555')">Ciano Terminal</button>
+    <button class="btn-theme" onclick="setTema('#000000', '#ffb000', '#553300')">Âmbar Fósforo</button>
+    <button class="btn-theme" onclick="setTema('#001a00', '#00ff66', '#004d1a')">Verde Pascal Original</button>
+  </div>
+
+  <div class="crt-terminal" id="terminalBox">
+    <div id="crtDisplay">Iniciando sistema Pascal...</div>
+    <div class="interactive-panel" id="interactivePanel">
+      <div class="prompt-title" id="promptText">Aguardando...</div>
+      <div id="actionArea"></div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // DATASET DE CARTAS OFICIAIS
+    // ==========================================
+    const RAW_CARTAS1 = `
+* MANA 1 0 0
+* MANA 1 0 0
+* MANA 2 0 0
+* MANA 2 0 0
+* MANA 1 0 0
+* MANA 1 0 0
+* MANA 2 0 0
+* MANA 1 0 0
+* MANA 1 0 0
+* MANA 3 0 0
+* MANA 1 0 0
+     Gollum 3 3 2
+   Afrodite 2 2 3
+        Orc 3 4 3
+    Aragorn 4 5 4
+      Frodo 7 6 4
+      Harry 3 3 4
+     Potter 2 2 1
+    Smeagle 2 1 2
+     Sauron 4 4 4
+    Pegasus 2 3 2
+       Zeus 5 4 5
+     Duende 3 2 2
+     Gnomos 1 1 3
+* MANA 1 0 0
+* MANA 3 0 0
+* MANA 1 0 0
+* MANA 1 0 0
+* MANA 2 0 0
+* MANA 1 0 0
+* MANA 2 0 0
+* MANA 2 0 0
+* MANA 1 0 0
+       Anao 3 2 1
+    Gandalf 2 5 3
+        Sam 2 2 1
+     Hobbit 1 3 3
+    Legolas 4 5 2
+       Elfo 2 3 1
+      Gimli 4 2 3
+    Theoden 3 3 3
+      Arwen 4 4 2
+        Ent 6 5 4
+      Dwarf 5 3 5
+  Minotauro 4 2 2
+  Wolverine 6 5 5
+       Fera 4 2 3
+    Cyclope 5 4 4
+    Vampira 3 3 1
+     Xavier 2 1 2
+       Goku 8 6 5
+     Yancha 6 3 3
+     Gorram 5 5 5
+    Picollo 3 4 4
+     Gotein 4 3 5
+       Kamy 6 4 4
+     Vidita 3 5 5
+    Kuririm 2 2 1
+   Androide 3 2 3
+     Trunks 5 4 4`;
+
+    const RAW_CARTAS2 = `
+     Donald 2 1 2
+      Diana 8 6 5
+     Presto 6 3 3
+   Vingador 5 5 5
+    Sombras 3 4 4
+     Diamat 4 3 5
+    Magneto 6 4 4
+      Jyban 3 5 5
+     Jiraia 2 2 1
+    Jaspion 3 2 3
+     Pumyra 5 4 4
+* MANA 2 0 0
+* MANA 1 0 0
+* MANA 2 0 0
+* MANA 2 0 0
+* MANA 1 0 0
+* MANA 1 0 0
+* MANA 2 0 0
+* MANA 1 0 0
+* MANA 1 0 0
+* MANA 3 0 0
+* MANA 1 0 0
+       Jaga 3 3 2
+    Wilikit 2 2 3
+      Snarf 3 4 3
+   Cheetara 4 5 4
+       Lion 7 6 4
+    Wilikat 3 3 4
+    Bengali 2 2 1
+       Linx 2 1 2
+    Panthro 4 4 4
+   Escamoso 2 3 2
+HomemAranha 5 4 5
+    Aquaman 3 2 2
+     Abutre 1 1 3
+        Uni 3 2 1
+      Tygra 2 5 3
+    Simiano 2 2 1
+     Chacal 1 3 3
+    Mumm-Ha 4 5 2
+     Rataro 2 3 1
+     Tugmug 4 2 3
+* MANA 1 0 0
+* MANA 1 0 0
+* MANA 2 0 0
+* MANA 2 0 0
+* MANA 1 0 0
+* MANA 1 0 0
+* MANA 3 0 0
+* MANA 1 0 0
+* MANA 1 0 0
+     Anakin 3 3 3
+  Skywalker 4 4 2
+Darth_Vader 6 5 4
+       Yoda 5 3 5
+    Obi-Wan 4 2 2
+       Hank 6 5 5
+       Eric 4 2 3
+        Bob 5 4 4
+    Sheilla 3 3 1`;
+
+    function parseCartas(raw) {
+      return raw.trim().split('\n').filter(l => l.trim().length > 0).map(line => {
+        let clean = line.replace('*', '').trim();
+        let parts = clean.split(/\s+/);
+        let defesa = parseInt(parts[parts.length - 1]);
+        let ataque = parseInt(parts[parts.length - 2]);
+        let energia = parseInt(parts[parts.length - 3]);
+        let nome = parts.slice(0, parts.length - 3).join(' ');
+
+        return { nome: nome.trim(), energia, ataque, defesa };
+      });
+    }
+
+    // Variáveis de Estado
+    let baralho1 = [], baralho2 = [];
+    let mao1 = [], mao2 = [];
+    let mesa1 = [], mesa2 = [];
+    let pt1 = 20, pt2 = 20;
+    let indexCompt1 = 7, indexCompt2 = 7;
+    let descarte1 = false, descarte2 = false;
+
+    const display = document.getElementById('crtDisplay');
+    const promptText = document.getElementById('promptText');
+    const actionArea = document.getElementById('actionArea');
+
+    const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+    function setTema(bg, text, border) {
+      document.documentElement.style.setProperty('--crt-bg', bg);
+      document.documentElement.style.setProperty('--crt-text', text);
+      document.documentElement.style.setProperty('--crt-border', border);
+    }
+
+    function embaralhar(baralhoOriginal) {
+      let b = [...baralhoOriginal];
+      for (let i = b.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [b[i], b[j]] = [b[j], b[i]];
+      }
+      return b;
+    }
+
+    // ==========================================
+    // INTRODUÇÃO ASCII (CORTADA CORRETAMENTE)
+    // ==========================================
+    async function rodarIntroducao() {
+      actionArea.innerHTML = '';
+      promptText.innerText = "Carregando jogo...";
+
+      const introFrames = [
+        "   !!!!!      !!!!!       !!!!        !!!!!!!!   !!!!    !!!!!!!!",
+        "   !!!!!!    !!!!!!      !!!!!!      !!!!!!!!    !!!!   !!!!!!!! ",
+        "   !!!!!!!  !!!!!!!     !!!!!!!!    !!!!         !!!!  !!!!       ",
+        "   !!!! !!!!!! !!!!    !!!!  !!!!  !!!!          !!!! !!!!        ",
+        "   !!!!  !!!!  !!!!   !!!!    !!!!  !!!!    !!!! !!!!  !!!!       ",
+        "   !!!!   !!   !!!!  !!!!!!!!!!!!!!  !!!!!!!!!!  !!!!   !!!!!!!! ",
+        "   !!!!        !!!! !!!!        !!!!  !!!!!!!    !!!!    !!!!!!!!"
+      ];
+
+      let titleHtml = introFrames.map(l => `<span class="color-cyan">${l}</span>`).join('\n');
+      titleHtml += `\n\n<span class="color-cyan">                          THE GATHERING</span>\n\n`;
+      titleHtml += `<span class="color-green">               por Bruno Cunha\n                   Edson Duraes\n                   Flavio Nakamura</span>`;
+
+      display.innerHTML = titleHtml;
+      await delay(1200);
+
+      promptText.innerText = "Pressione para iniciar a partida!";
+      actionArea.innerHTML = `<button class="btn-action" onclick="iniciarJogo()">[ INICIAR JOGO ]</button>`;
+    }
+
+    // ==========================================
+    // RENDERIZAÇÃO DA MESA DE JOGO
+    // ==========================================
+    function renderMesa() {
+      let output = "";
+      output += "Legenda: # = Numero, E = Energia, A = Ataque, D = Defesa\n\n";
+      output += `-Mesa 1 - ${String(pt1).padStart(2)} pontos-                          -Mesa 2 - ${String(pt2).padStart(2)} pontos-\n`;
+      output += " #         Nome E A D                            #         Nome E A D\n";
+
+      let maxRows = Math.max(mesa1.length, mesa2.length);
+      for (let i = 0; i < maxRows; i++) {
+        let c1 = mesa1[i];
+        let c2 = mesa2[i];
+
+        let str1 = "                                              ";
+        if (c1 && c1.energia !== -1) {
+          str1 = `${String(i + 1).padStart(2)} ${c1.nome.padEnd(11)} ${c1.energia} ${c1.ataque} ${c1.defesa}`.padEnd(46);
+        }
+
+        let str2 = "";
+        if (c2 && c2.energia !== -1) {
+          str2 = `${String(i + 1).padStart(2)} ${c2.nome.padEnd(11)} ${c2.energia} ${c2.ataque} ${c2.defesa}`;
+        }
+
+        output += str1 + str2 + "\n";
+      }
+
+      display.innerText = output;
+    }
+
+    function iniciarJogo() {
+      baralho1 = embaralhar(parseCartas(RAW_CARTAS1));
+      baralho2 = embaralhar(parseCartas(RAW_CARTAS2));
+
+      mao1 = baralho1.slice(0, 7);
+      mao2 = baralho2.slice(0, 7);
+
+      pt1 = 20; pt2 = 20;
+      mesa1 = []; mesa2 = [];
+      indexCompt1 = 7; indexCompt2 = 7;
+
+      turnoJogador1_Baixar();
+    }
+
+    // ==========================================
+    // TURNO JOGADOR 1 - BAIXAR CARTA
+    // ==========================================
+    function turnoJogador1_Baixar() {
+      renderMesa();
+      promptText.innerText = "Jogador 1 - Clique na carta para baixar na mesa ou em [Descartar]:";
+
+      let manaDisponivel = mesa1.filter(c => c.energia > 0 && c.defesa === 0).reduce((acc, c) => acc + c.energia, 0);
+
+      let html = `<div class="card-grid">`;
+      mao1.forEach((c, idx) => {
+        if (c && c.energia > 0) {
+          let podeJogar = (c.defesa === 0) || (c.energia <= manaDisponivel);
+          html += `<button class="card-button" ${podeJogar ? '' : 'disabled'} onclick="jogarCarta1(${idx})">
+            [${idx + 1}] ${c.nome} (E:${c.energia} A:${c.ataque} D:${c.defesa})
+          </button>`;
+        }
+      });
+      html += `</div>`;
+      html += `<button class="btn-action" style="margin-top:10px" onclick="descartarCartaPrompt(1)">[ Descartar Carta ]</button>`;
+
+      actionArea.innerHTML = html;
+    }
+
+    function jogarCarta1(idx) {
+      let carta = mao1[idx];
+      mesa1.push(carta);
+      mao1[idx] = { nome: "---", energia: -1, ataque: 0, defesa: 0 };
+      descarte1 = false;
+      turnoJogador1_AtaquePrompt();
+    }
+
+    function descartarCartaPrompt(jogador) {
+      promptText.innerText = `Jogador ${jogador} - Clique na carta que deseja descartar:`;
+      let mao = jogador === 1 ? mao1 : mao2;
+
+      let html = `<div class="card-grid">`;
+      mao.forEach((c, idx) => {
+        if (c && c.energia > 0) {
+          html += `<button class="card-button" onclick="confirmarDescarte(${jogador}, ${idx})">
+            [${idx + 1}] ${c.nome}
+          </button>`;
+        }
+      });
+      html += `</div>`;
+      actionArea.innerHTML = html;
+    }
+
+    function confirmarDescarte(jogador, idx) {
+      if (jogador === 1) {
+        mao1[idx] = { nome: "---", energia: -1, ataque: 0, defesa: 0 };
+        descarte1 = true;
+        turnoJogador1_AtaquePrompt();
+      } else {
+        mao2[idx] = { nome: "---", energia: -1, ataque: 0, defesa: 0 };
+        descarte2 = true;
+        turnoJogador2_AtaquePrompt();
+      }
+    }
+
+    function turnoJogador1_AtaquePrompt() {
+      renderMesa();
+      let atacantesDisponiveis = mesa1.filter((c, idx) => c.energia > 0 && c.ataque > 0 && idx < (descarte1 ? mesa1.length : mesa1.length - 1));
+
+      if (atacantesDisponiveis.length === 0) {
+        comprarCarta(1);
+        turnoJogador2_Baixar();
+        return;
+      }
+
+      promptText.innerText = "Jogador 1 - Deseja atacar?";
+      actionArea.innerHTML = `
+        <button class="btn-action" onclick="precombate1()">[ SIM, ATACAR ]</button>
+        <button class="btn-action" onclick="passarAtaque1()">[ NÃO ATACAR ]</button>
+      `;
+    }
+
+    function passarAtaque1() {
+      comprarCarta(1);
+      turnoJogador2_Baixar();
+    }
+
+    function precombate1() {
+      promptText.innerText = "Jogador 1 - Clique na criatura com que deseja atacar:";
+
+      let html = `<div class="card-grid">`;
+      mesa1.forEach((c, idx) => {
+        let limite = descarte1 ? mesa1.length : mesa1.length - 1;
+        if (c.energia > 0 && c.ataque > 0 && idx < limite) {
+          html += `<button class="card-button" onclick="jogador1AtacaCom(${idx})">
+            ${c.nome} (A:${c.ataque} D:${c.defesa})
+          </button>`;
+        }
+      });
+      html += `</div>`;
+      actionArea.innerHTML = html;
+    }
+
+    let atacante1Index = -1;
+
+    function jogador1AtacaCom(idx) {
+      atacante1Index = idx;
+      let temDefensores = mesa2.some(c => c.energia > 0 && c.defesa > 0);
+
+      if (temDefensores) {
+        promptText.innerText = "Jogador 2 - Deseja defender o ataque?";
+        actionArea.innerHTML = `
+          <button class="btn-action" onclick="jogador2EscolheDefesa()">[ SIM, DEFENDER ]</button>
+          <button class="btn-action" onclick="jogador2RecebeDanoDirecto()">[ NÃO DEFENDER ]</button>
+        `;
+      } else {
+        jogador2RecebeDanoDirecto();
+      }
+    }
+
+    function jogador2RecebeDanoDirecto() {
+      let atacante = mesa1[atacante1Index];
+      pt2 -= atacante.ataque;
+      alert(`Ataque Indefensável! Jogador 2 recebe ${atacante.ataque} de dano direto.`);
+
+      if (pt2 <= 0) {
+        finalizarJogo(1);
+      } else {
+        comprarCarta(1);
+        turnoJogador2_Baixar();
+      }
+    }
+
+    function jogador2EscolheDefesa() {
+      promptText.innerText = "Jogador 2 - Clique na criatura com que deseja defender:";
+
+      let html = `<div class="card-grid">`;
+      mesa2.forEach((c, idx) => {
+        if (c.energia > 0 && c.defesa > 0) {
+          html += `<button class="card-button" onclick="executarCombate(${atacante1Index}, ${idx}, 1)">
+            ${c.nome} (A:${c.ataque} D:${c.defesa})
+          </button>`;
+        }
+      });
+      html += `</div>`;
+      actionArea.innerHTML = html;
+    }
+
+    // ==========================================
+    // COMBATE E ANIMAÇÕES DO PASCAL INTEGRADAS
+    // ==========================================
+    async function executarCombate(i1, i2, atacanteId) {
+      actionArea.innerHTML = '';
+      let c1 = mesa1[i1];
+      let c2 = mesa2[i2];
+
+      promptText.innerText = "⚔️ DUELO EM ANDAMENTO... ⚔️";
+
+      let numFilme = atacanteId === 1 ? (Math.random() > 0.5 ? 0 : 1) : (Math.random() > 0.5 ? 2 : 3);
+      await executarFilmePascal(numFilme);
+
+      let txtRes = `------------------------------------------------\n`;
+      txtRes += ` Combate entre ${c1.nome} (Jogador 1) e ${c2.nome} (Jogador 2):\n`;
+      txtRes += `------------------------------------------------\n\n`;
+
+      let m1Morre = c2.ataque >= c1.defesa;
+      let m2Morre = c1.ataque >= c2.defesa;
+
+      if (m2Morre && !m1Morre) {
+        txtRes += `${c2.nome} perde o combate e morre!\n`;
+      } else if (m1Morre && !m2Morre) {
+        txtRes += `${c1.nome} perde o combate e morre!\n`;
+      } else if (m1Morre && m2Morre) {
+        txtRes += `Ambas as criaturas morrem no combate!\n`;
+      } else {
+        txtRes += `As duas criaturas sobrevivem ao combate.\n`;
+      }
+
+      if (m1Morre) c1.energia = -1;
+      if (m2Morre) c2.energia = -1;
+
+      display.innerText = txtRes;
+      promptText.innerText = "Clique para continuar o turno...";
+      actionArea.innerHTML = `<button class="btn-action" onclick="${atacanteId === 1 ? 'concluirTurnoAtaque1()' : 'concluirTurnoAtaque2()'}">[ CONTINUAR ]</button>`;
+    }
+
+    async function executarFilmePascal(numFilme) {
+      const pad = ' '.repeat(20);
+      const chao = pad + '------------------------------------------------';
+
+      if (numFilme === 0) {
+        const frames = [
+          { t: `${pad} O             O   \n${pad}/|\\           /|\\  \n${pad}/ \\           / \\  `, d: 200 },
+          { t: `${pad} O             O   \n${pad}|||           /|\\  \n${pad}/ \\           / \\  `, d: 140 },
+          { t: `${pad} O             O   \n${pad} |=           /|\\  \n${pad}/ \\           / \\  `, d: 40 },
+          { t: `${pad} O             O   \n${pad} |=)          /|\\  \n${pad}/ \\           / \\  `, d: 30 },
+          { t: `${pad} O _           O   \n${pad} |==)         /|\\  \n${pad}/ \\           / \\  `, d: 70 },
+          { t: `${pad} O   _         O   \n${pad} |=  =)        |\\  \n${pad}/ \\           / \\  `, d: 70 },
+          { t: `${pad} O     _       O   \n${pad} |=    =)     /|\\  \n${pad}/ \\           / \\  `, d: 70 },
+          { t: `${pad} O       _     O   \n${pad}|||      =)  |/|\\  \n${pad}/ \\           / \\  `, d: 70 },
+          { t: `${pad} O         _ | O   \n${pad}|||        =)|/|\\  \n${pad}/ \\          |/ \\  `, d: 70 },
+          { t: `${pad} O          _| O   \n${pad}|||         =|/|\\  \n${pad}/ \\          |/ \\  `, d: 70 },
+          { t: `${pad} O          \\| O   \n${pad}|||          |/|\\  \n${pad}/ \\         /|/ \\  `, d: 110 },
+          { t: `${pad} O           | O   \n${pad}<|>          |/|\\  \n${pad}/ \\          |/ \\  `, d: 130 },
+          { t: `${pad} O             O   \n${pad}<|>          |/|\\  \n${pad}/ \\           / \\  `, d: 130 },
+          { t: `${pad} O             O   \n${pad}<|>           ||\\  \n${pad}/ \\           / \\  `, d: 130 },
+          { t: `${pad} O             O   \n${pad}<|>           /|\\  \n${pad}/ \\           / \\  `, d: 120 },
+          { t: `${pad} O            _O_  \n${pad}<|>            |   \n${pad}/ \\           / \\  `, d: 80 },
+          { t: `${pad} O            \\O/  \n${pad}<|>            |   \n${pad}/ \\           / \\  `, d: 300 }
+        ];
+
+        for (let f of frames) {
+          display.innerText = `\n\n${f.t}\n${chao}`;
+          await delay(f.d);
+        }
+      } 
+      else if (numFilme === 1) {
+        const frames = [
+          { t: `${pad} O               O   \n${pad}/|\\             /|\\  \n${pad}/ \\             / \\  `, d: 200 },
+          { t: `${pad} O               O   \n${pad}/||             ||\\  \n${pad}/ \\             / \\  `, d: 150 },
+          { t: `${pad} O  /         \\  O   \n${pad}/|\\/           \\/|\\  \n${pad}/ \\             / \\  `, d: 150 },
+          { t: `${pad}  O  /       \\  O   \n${pad} /|\\/         \\/|\\  \n${pad} | |           | |  `, d: 150 },
+          { t: `${pad}   O  /     \\  O   \n${pad}  /|\\/       \\/|\\  \n${pad}  / \\         / \\  `, d: 150 },
+          { t: `${pad}    O  /   \\  O   \n${pad}   /|\\/     \\/|\\  \n${pad}   | |       | |  `, d: 150 },
+          { t: `${pad}     O  /\\  O   \n${pad}    /|\\/  \\/|\\  \n${pad}    / \\    / \\  `, d: 150 },
+          { t: `${pad}      O || O   \n${pad}     /|\\||/|\\  \n${pad}     | |  | |  `, d: 150 },
+          { t: `${pad}      O \\/ O   \n${pad}     /|\\/\\/|\\  \n${pad}     / \\  / \\  `, d: 150 },
+          { t: `${pad}      O */ O   \n${pad}     /|\\/\\/|\\  \n${pad}     / \\  / \\  `, d: 150 },
+          { t: `${pad}      O   / O   \n${pad}     /|\\/ /|\\  \n${pad}     / \\ |/ \\  `, d: 150 },
+          { t: `${pad}       O____   \n${pad}      /|  /|\\O \n${pad}      / \\ / \\  `, d: 150 },
+          { t: `${pad}          /     \n${pad}      \\O_/     \n${pad}       |       \n${pad}      / \\ >|<O `, d: 300 }
+        ];
+
+        for (let f of frames) {
+          display.innerText = `\n\n${f.t}\n${chao}`;
+          await delay(f.d);
+        }
+      }
+      else if (numFilme === 2) {
+        const frames = [
+          { t: `${pad} O             O   \n${pad}/|\\           /|\\  \n${pad}/ \\           / \\  `, d: 200 },
+          { t: `${pad} O             O   \n${pad}/|\\           |||  \n${pad}/ \\           / \\  `, d: 140 },
+          { t: `${pad} O             O   \n${pad}/|\\           =|   \n${pad}/ \\           / \\  `, d: 40 },
+          { t: `${pad} O            _ O   \n${pad}/|\\          (==|   \n${pad}/ \\           / \\  `, d: 70 },
+          { t: `${pad} O        _     O   \n${pad}/|\\      (=    =|   \n${pad}/ \\           / \\  `, d: 70 },
+          { t: `${pad} O _            O   \n${pad}/|(=           /|\\  \n${pad}/ \\           / \\  `, d: 70 },
+          { t: `${pad} _                 _O_ \n${pad}(=   O              |  \n${pad}                   / \\ `, d: 300 }
+        ];
+
+        for (let f of frames) {
+          display.innerText = `\n\n${f.t}\n${chao}`;
+          await delay(f.d);
+        }
+      }
+      else if (numFilme === 3) {
+        const frames = [
+          { t: `${pad} O             O   \n${pad}/||           ||\n${pad}/ \\           / \\  `, d: 100 },
+          { t: `${pad} O_-           O   \n${pad}/|            o||\\  \n${pad}/ \\           / \\  `, d: 100 },
+          { t: `${pad} O    -        _O   \n${pad}/|\\        o    |\\  \n${pad}/ \\           / \\  `, d: 100 },
+          { t: `${pad} O          -  O   \n${pad}/|\\ o         /|\\  \n${pad}/ \\           / \\  `, d: 100 },
+          { t: `${pad} O              * \n${pad}/o\\           /|\\  \n${pad}/ \\           / \\  `, d: 100 },
+          { t: `${pad}_O_             _ * \n${pad} U              _ /|   \n${pad}/ \\              |     `, d: 100 },
+          { t: `${pad} U                    \n${pad}U U             \\__\\* \n${pad} U              / /   `, d: 100 },
+          { t: `${pad}  . . .                 \n${pad}.       .               \n${pad}:. . . .:        _\\__\\*_`, d: 150 },
+          { t: `${pad}.........        _\\__\\*_`, d: 300 }
+        ];
+
+        for (let f of frames) {
+          display.innerText = `\n\n${f.t}\n${chao}`;
+          await delay(f.d);
+        }
+      }
+    }
+
+    function concluirTurnoAtaque1() {
+      comprarCarta(1);
+      turnoJogador2_Baixar();
+    }
+
+    // ==========================================
+    // TURNO JOGADOR 2
+    // ==========================================
+    function turnoJogador2_Baixar() {
+      renderMesa();
+      promptText.innerText = "Jogador 2 - Clique na carta para baixar na mesa ou em [Descartar]:";
+
+      let manaDisponivel = mesa2.filter(c => c.energia > 0 && c.defesa === 0).reduce((acc, c) => acc + c.energia, 0);
+
+      let html = `<div class="card-grid">`;
+      mao2.forEach((c, idx) => {
+        if (c && c.energia > 0) {
+          let podeJogar = (c.defesa === 0) || (c.energia <= manaDisponivel);
+          html += `<button class="card-button" ${podeJogar ? '' : 'disabled'} onclick="jogarCarta2(${idx})">
+            [${idx + 1}] ${c.nome} (E:${c.energia} A:${c.ataque} D:${c.defesa})
+          </button>`;
+        }
+      });
+      html += `</div>`;
+      html += `<button class="btn-action" style="margin-top:10px" onclick="descartarCartaPrompt(2)">[ Descartar Carta ]</button>`;
+
+      actionArea.innerHTML = html;
+    }
+
+    function jogarCarta2(idx) {
+      let carta = mao2[idx];
+      mesa2.push(carta);
+      mao2[idx] = { nome: "---", energia: -1, ataque: 0, defesa: 0 };
+      descarte2 = false;
+      turnoJogador2_AtaquePrompt();
+    }
+
+    function turnoJogador2_AtaquePrompt() {
+      renderMesa();
+      let atacantesDisponiveis = mesa2.filter((c, idx) => c.energia > 0 && c.ataque > 0 && idx < (descarte2 ? mesa2.length : mesa2.length - 1));
+
+      if (atacantesDisponiveis.length === 0) {
+        comprarCarta(2);
+        turnoJogador1_Baixar();
+        return;
+      }
+
+      promptText.innerText = "Jogador 2 - Deseja atacar?";
+      actionArea.innerHTML = `
+        <button class="btn-action" onclick="precombate2()">[ SIM, ATACAR ]</button>
+        <button class="btn-action" onclick="passarAtaque2()">[ NÃO ATACAR ]</button>
+      `;
+    }
+
+    function passarAtaque2() {
+      comprarCarta(2);
+      turnoJogador1_Baixar();
+    }
+
+    function precombate2() {
+      promptText.innerText = "Jogador 2 - Clique na criatura com que deseja atacar:";
+
+      let html = `<div class="card-grid">`;
+      mesa2.forEach((c, idx) => {
+        let limite = descarte2 ? mesa2.length : mesa2.length - 1;
+        if (c.energia > 0 && c.ataque > 0 && idx < limite) {
+          html += `<button class="card-button" onclick="jogador2AtacaCom(${idx})">
+            ${c.nome} (A:${c.ataque} D:${c.defesa})
+          </button>`;
+        }
+      });
+      html += `</div>`;
+      actionArea.innerHTML = html;
+    }
+
+    let atacante2Index = -1;
+
+    function jogador2AtacaCom(idx) {
+      atacante2Index = idx;
+      let temDefensores = mesa1.some(c => c.energia > 0 && c.defesa > 0);
+
+      if (temDefensores) {
+        promptText.innerText = "Jogador 1 - Deseja defender o ataque?";
+        actionArea.innerHTML = `
+          <button class="btn-action" onclick="jogador1EscolheDefesa()">[ SIM, DEFENDER ]</button>
+          <button class="btn-action" onclick="jogador1RecebeDanoDirecto()">[ NÃO DEFENDER ]</button>
+        `;
+      } else {
+        jogador1RecebeDanoDirecto();
+      }
+    }
+
+    function jogador1RecebeDanoDirecto() {
+      let atacante = mesa2[atacante2Index];
+      pt1 -= atacante.ataque;
+      alert(`Ataque Indefensável! Jogador 1 recebe ${atacante.ataque} de dano direto.`);
+
+      if (pt1 <= 0) {
+        finalizarJogo(2);
+      } else {
+        comprarCarta(2);
+        turnoJogador1_Baixar();
+      }
+    }
+
+    function jogador1EscolheDefesa() {
+      promptText.innerText = "Jogador 1 - Clique na criatura com que deseja defender:";
+
+      let html = `<div class="card-grid">`;
+      mesa1.forEach((c, idx) => {
+        if (c.energia > 0 && c.defesa > 0) {
+          html += `<button class="card-button" onclick="executarCombate(${atacante2Index}, ${idx}, 2)">
+            ${c.nome} (A:${c.ataque} D:${c.defesa})
+          </button>`;
+        }
+      });
+      html += `</div>`;
+      actionArea.innerHTML = html;
+    }
+
+    function concluirTurnoAtaque2() {
+      comprarCarta(2);
+      turnoJogador1_Baixar();
+    }
+
+    function comprarCarta(jogador) {
+      if (jogador === 1) {
+        if (indexCompt1 < baralho1.length) {
+          let vaga = mao1.findIndex(c => c.energia <= 0);
+          if (vaga !== -1) mao1[vaga] = baralho1[indexCompt1];
+          indexCompt1++;
+        }
+      } else {
+        if (indexCompt2 < baralho2.length) {
+          let vaga = mao2.findIndex(c => c.energia <= 0);
+          if (vaga !== -1) mao2[vaga] = baralho2[indexCompt2];
+          indexCompt2++;
+        }
+      }
+    }
+
+    // ==========================================
+    // FIM DE JOGO
+    // ==========================================
+    function finalizarJogo(vencedor) {
+      let fimText = `
+    $$$$$$$$  $$$$  $$$$$$      $$$$$$      $$$$$$$$$     $$$$$$$$
+    $$$$$$$$  $$$$  $$$$$$$    $$$$$$$      $$$$$$$$$$$   $$$$$$$$
+    $$$$      $$$$  $$$$$$$$  $$$$$$$$      $$$$   $$$$$  $$$$    
+    $$$$$$$   $$$$  $$$$ $$$$$$$$ $$$$      $$$$    $$$$  $$$$$$$ 
+    $$$$$$$   $$$$  $$$$  $$$$$$  $$$$      $$$$   $$$$$  $$$$    
+    $$$$      $$$$  $$$$   $$$$   $$$$      $$$$$$$$$$$   $$$$$$$$
+    $$$$      $$$$  $$$$    $$    $$$$      $$$$$$$$$     $$$$$$$$
+
+            $$$$     $$$$$$        $$$$$$$$       $$$$$$       $$$ 
+            $$$$   $$$$$$$$$$     $$$$$$$$      $$$$$$$$$$     $$$ 
+            $$$$  $$$$$  $$$$$   $$$$          $$$$$  $$$$$    $$$ 
+            $$$$  $$$$    $$$$   $$$$          $$$$    $$$$    $$$ 
+      $$$$  $$$$  $$$$$  $$$$$   $$$$   $$$$   $$$$$  $$$$$    $$$ 
+      $$$$$$$$$$   $$$$$$$$$$     $$$$$$$$$$    $$$$$$$$$$        
+        $$$$$$       $$$$$$        $$$$$$$$       $$$$$$       $$$ 
+
+               =======================================
+                        JOGADOR ${vencedor} É O VENCEDOR!
+               =======================================
+      `;
+
+      display.innerText = fimText;
+      promptText.innerText = "Fim de Jogo!";
+      actionArea.innerHTML = `<button class="btn-action" onclick="rodarIntroducao()">[ JOGAR NOVAMENTE ]</button>`;
+    }
+
+    window.onload = rodarIntroducao;
+  </script>
+</body>
+</html>
