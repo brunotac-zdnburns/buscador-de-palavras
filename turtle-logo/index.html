@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turtle Graphics - Linguagem Logo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #121214;
+      color: #e1e1e6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 12px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      color: #00875f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+      flex: 1;
+    }
+
+    @media (min-width: 768px) {
+      .main-container {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+      }
+    }
+
+    .canvas-card {
+      background: #202024;
+      border: 1px solid #29292e;
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    canvas {
+      background: #ffffff;
+      border-radius: 4px;
+      width: 100%;
+      max-width: 500px;
+      height: 380px;
+      touch-action: none;
+    }
+
+    .controls-card {
+      background: #202024;
+      border: 1px solid #29292e;
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: #a8a8b3;
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      background: #121214;
+      border: 1px solid #323238;
+      border-radius: 6px;
+      color: #000;
+      color: #00f0ff;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.95rem;
+      padding: 8px;
+      resize: vertical;
+    }
+
+    textarea:focus {
+      outline: 1px solid #00875f;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-run {
+      background: #00875f;
+      color: #fff;
+    }
+
+    .btn-run:hover {
+      background: #00b37e;
+    }
+
+    .btn-clear {
+      background: #29292e;
+      color: #e1e1e6;
+    }
+
+    .btn-clear:hover {
+      background: #323238;
+    }
+
+    .quick-examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn-chip {
+      background: #29292e;
+      color: #a8a8b3;
+      border: 1px solid #323238;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .btn-chip:hover {
+      background: #323238;
+      color: #fff;
+    }
+
+    .console {
+      background: #121214;
+      border: 1px solid #29292e;
+      border-radius: 6px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      min-height: 45px;
+      color: #8d8d99;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    .console.error {
+      color: #f75a68;
+    }
+
+    .console.success {
+      color: #00b37e;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🐢 Logo Turtle Studio</h1>
+  </header>
+
+  <div class="main-container">
+    <div class="canvas-card">
+      <canvas id="turtleCanvas" width="500" height="380"></canvas>
+    </div>
+
+    <div class="controls-card">
+      <label for="commandInput">Comandos Logo:</label>
+      <textarea id="commandInput" placeholder="Ex: repita 4 [ pf 100 pd 90 ]" spellcheck="false"></textarea>
+
+      <div class="btn-group">
+        <button class="btn-run" onclick="executarComandos()">Executar ▶</button>
+        <button class="btn-clear" onclick="resetarTartaruga()">Limpar 🗑️</button>
+      </div>
+
+      <label>Exemplos Rápidos:</label>
+      <div class="quick-examples">
+        <button class="btn-chip" onclick="carregarExemplo('quadrado')">Quadrado</button>
+        <button class="btn-chip" onclick="carregarExemplo('estrela')">Estrela</button>
+        <button class="btn-chip" onclick="carregarExemplo('circulo')">Círculo</button>
+
+        <button class="btn-chip" onclick="carregarExemplo('flor')">Flor/Roseta</button>
+      </div>
+
+      <label>Status / Console:</label>
+      <div id="consoleLog" class="console">Pronto para desenhar.</div>
+    </div>
+  </div>
+
+  <script>
+    // Configurações do Canvas e Estado da Tartaruga
+    const canvas = document.getElementById('turtleCanvas');
+    const ctx = canvas.getContext('2d');
+    const consoleLog = document.getElementById('consoleLog');
+
+    let x = canvas.width / 2;
+    let y = canvas.height / 2;
+    let angulo = -90; // Começa apontada para cima (-90 graus no canvas)
+    let penDown = true;
+    let corAtual = '#000000';
+    let espessuraAtual = 2;
+
+    // Inicialização
+    function init() {
+      resetarTartaruga();
+    }
+
+    function logMsg(msg, isError = false) {
+      consoleLog.innerText = msg;
+      consoleLog.className = 'console ' + (isError ? 'error' : 'success');
+    }
+
+    function resetarTartaruga() {
+      x = canvas.width / 2;
+      y = canvas.height / 2;
+      angulo = -90;
+      penDown = true;
+      corAtual = '#000000';
+      espessuraAtual = 2;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      desenharTartaruga();
+      logMsg("Canvas limpo e tartaruga resetada.");
+    }
+
+    // Desenha o ícone/cursor da tartaruga na posição atual
+    function desenharTartaruga() {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((angulo + 90) * Math.PI / 180);
+
+      // Triângulo representando a Tartaruga
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(7, 8);
+      ctx.lineTo(-7, 8);
+      ctx.closePath();
+
+      ctx.fillStyle = '#00b37e';
+      ctx.fill();
+      ctx.strokeStyle = '#121214';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Parser e Interpretador de Comandos
+    function tokenizar(texto) {
+      // Normaliza quebras de linha e adiciona espaços ao redor de colchetes
+      const limpo = texto.replace(/\[/g, ' [ ').replace(/\]/g, ' ] ').trim();
+      if (!limpo) return [];
+      return limpo.split(/\s+/);
+    }
+
+    function executarComandos() {
+      const texto = document.getElementById('commandInput').value;
+      const tokens = tokenizar(texto);
+
+      if (tokens.length === 0) {
+        logMsg("Digite algum comando antes de executar.", true);
+        return;
+      }
+
+      try {
+        let index = 0;
+        
+        // Redesenha a tela mantendo o histórico se necessário (aqui limpa o traço e refaz do zero a partir do código)
+        // Para acúmulo, remova a linha abaixo
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        x = canvas.width / 2;
+        y = canvas.height / 2;
+        angulo = -90;
+
+        processarTokens(tokens);
+        desenharTartaruga();
+        logMsg("Comandos executados com sucesso!");
+      } catch (err) {
+        logMsg("Erro de execução: " + err.message, true);
+        desenharTartaruga();
+      }
+    }
+
+    function processarTokens(tokens) {
+      let i = 0;
+
+      while (i < tokens.length) {
+        let cmd = tokens[i].toLowerCase();
+
+        if (cmd === 'pf' || cmd === 'para-frente' || cmd === 'fd') {
+          let dist = parseFloat(tokens[++i]);
+          moverTartaruga(dist);
+        } 
+        else if (cmd === 'pt' || cmd === 'para-tras' || cmd === 'bk') {
+          let dist = parseFloat(tokens[++i]);
+          moverTartaruga(-dist);
+        } 
+        else if (cmd === 'pd' || cmd === 'para-direita' || cmd === 'rt') {
+          let grau = parseFloat(tokens[++i]);
+          angulo += grau;
+        } 
+        else if (cmd === 'pe' || cmd === 'para-esquerda' || cmd === 'lt') {
+          let grau = parseFloat(tokens[++i]);
+          angulo -= grau;
+        } 
+        else if (cmd === 'mude-cor' || cmd === 'mudecor') {
+          corAtual = tokens[++i];
+        } 
+        else if (cmd === 'mude-espessura' || cmd === 'mudeespessura') {
+          espessuraAtual = parseFloat(tokens[++i]);
+        } 
+        else if (cmd === 'ul' || cmd === 'usar-lapis') {
+          penDown = true;
+        } 
+        else if (cmd === 'ub' || cmd === 'usar-borracha') {
+          penDown = false;
+        } 
+        else if (cmd === 'limpar' || cmd === 'lc') {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        } 
+        else if (cmd === 'repita') {
+          let vezes = parseInt(tokens[++i]);
+          if (tokens[++i] !== '[') throw new Error("Esperado '[' após 'repita N'");
+
+          let inicioBloco = i + 1;
+          let nivelColchetes = 1;
+
+          // Encontra o colchete de fechamento correspondente
+          while (i < tokens.length - 1 && nivelColchetes > 0) {
+            i++;
+            if (tokens[i] === '[') nivelColchetes++;
+            if (tokens[i] === ']') nivelColchetes--;
+          }
+
+          if (nivelColchetes !== 0) throw new Error("Colchete ']' não foi fechado.");
+
+          let subTokens = tokens.slice(inicioBloco, i);
+
+          for (let r = 0; r < vezes; r++) {
+            processarTokens(subTokens);
+          }
+        } 
+        else {
+          throw new Error(`Comando desconhecido: "${cmd}"`);
+        }
+
+        i++;
+      }
+    }
+
+    function moverTartaruga(distancia) {
+      const rad = angulo * Math.PI / 180;
+      const novoX = x + distancia * Math.cos(rad);
+      const novoY = y + distancia * Math.sin(rad);
+
+      if (penDown) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(novoX, novoY);
+        ctx.strokeStyle = corAtual;
+        ctx.lineWidth = espessuraAtual;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      }
+
+      x = novoX;
+      y = novoY;
+    }
+
+    // Carregador de Exemplos
+    function carregarExemplo(nome) {
+      const input = document.getElementById('commandInput');
+
+      if (nome === 'quadrado') {
+        input.value = "mude-cor red\nmude-espessura 3\nrepita 4 [\n  pf 100\n  pd 90\n]";
+      } else if (nome === 'estrela') {
+        input.value = "mude-cor #ff9900\nmude-espessura 2\nrepita 5 [\n  pf 120\n  pd 144\n]";
+      } else if (nome === 'circulo') {
+        input.value = "mude-cor blue\nrepita 36 [\n  pf 8\n  pd 10\n]";
+      } else if (nome === 'flor') {
+        input.value = "mude-cor purple\nrepita 12 [\n  repita 4 [\n    pf 60\n    pd 90\n  ]\n  pd 30\n]";
+      }
+
+      executarComandos();
+    }
+
+    // Inicializa a aplicação ao carregar
+    window.onload = init;
+  </script>
+</body>
+</html>
