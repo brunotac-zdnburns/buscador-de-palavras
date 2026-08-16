@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TicTacXprt Reborn</title>
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --text-color: #f8fafc;
+      --primary-color: #38bdf8;
+      --secondary-color: #f97316;
+      --accent-color: #22c55e;
+      --blocked-color: #ef4444;
+      --border-color: #334155;
+      --hover-color: #475569;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+      color: var(--primary-color);
+    }
+
+    p.subtitle {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+
+    select, button {
+      background-color: var(--border-color);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    select:hover, button:hover {
+      background-color: var(--hover-color);
+    }
+
+    .actions {
+      margin-bottom: 15px;
+    }
+
+    button.btn-reset {
+      background-color: var(--primary-color);
+      color: #0f172a;
+      font-weight: bold;
+      width: 100%;
+      padding: 10px;
+    }
+
+    button.btn-reset:hover {
+      background-color: #7dd3fc;
+    }
+
+    .status-board {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .cell {
+      width: 100%;
+      aspect-ratio: 1;
+      background-color: var(--border-color);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s ease, background-color 0.2s ease;
+    }
+
+    .cell:hover:not(.blocked):not(.x):not(.o) {
+      background-color: var(--hover-color);
+      transform: scale(1.02);
+    }
+
+    .cell.x { color: var(--primary-color); }
+    .cell.o { color: var(--secondary-color); }
+    .cell.blocked {
+      background-color: #331e29;
+      color: var(--blocked-color);
+      cursor: not-allowed;
+      font-size: 1.5rem;
+    }
+
+    .cell.winner {
+      background-color: var(--accent-color);
+      color: #0f172a;
+      animation: pulse 0.6s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.05); }
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      background: #0f172a;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 0.85rem;
+    }
+
+    .score-item span {
+      display: block;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    .history-container {
+      text-align: left;
+      background: #0f172a;
+      padding: 12px;
+      border-radius: 8px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .history-title {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .history-list {
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      list-style: none;
+    }
+
+    .history-list li {
+      margin-bottom: 4px;
+      padding-bottom: 4px;
+      border-bottom: 1px dashed var(--border-color);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>TicTacXprt Reborn</h1>
+    <p class="subtitle">Mecanismo Completo + Cenários Especializados</p>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="aiSelect">Dificuldade / IA:</label>
+        <select id="aiSelect">
+          <option value="easy">1. Easy</option>
+          <option value="piece_of_cake">2. Piece of Cake</option>
+          <option value="expert">3. Expert</option>
+          <option value="daniel_san">4. Daniel San</option>
+          <option value="miyagi">5. Miyagi</option>
+          <option value="ninja">6. Ninja</option>
+          <option value="jedi">7. Jedi</option>
+          <option value="yoda" selected>8. Yoda (Defensivo)</option>
+          <option value="darth_vader">9. Darth Vader (Agressivo)</option>
+          <option value="pvp">Modo 2 Jogadores (PvP)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="scenarioSelect">Cenário Especial:</label>
+        <select id="scenarioSelect">
+          <option value="normal" selected>Normal</option>
+          <option value="fill">Fill (Pré-preenchido)</option>
+          <option value="block">Block (Casas Bloqueadas)</option>
+          <option value="rounds">Rounds (Turnos Limitados)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="btnReset" class="btn-reset">Iniciar Nova Partida</button>
+    </div>
+
+    <div class="scoreboard">
+      <div class="score-item">Vitórias X <span id="scoreX">0</span></div>
+      <div class="score-item">Empates <span id="scoreTie">0</span></div>
+      <div class="score-item">Vitórias O <span id="scoreO">0</span></div>
+    </div>
+
+    <div id="status" class="status-board">Vez do Jogador X</div>
+
+    <div id="grid" class="grid">
+      <div class="cell" data-index="0"></div>
+      <div class="cell" data-index="1"></div>
+      <div class="cell" data-index="2"></div>
+      <div class="cell" data-index="3"></div>
+      <div class="cell" data-index="4"></div>
+      <div class="cell" data-index="5"></div>
+      <div class="cell" data-index="6"></div>
+      <div class="cell" data-index="7"></div>
+      <div class="cell" data-index="8"></div>
+    </div>
+
+    <div class="history-container">
+      <div class="history-title">Histórico de Partidas</div>
+      <ul id="historyList" class="history-list">
+        <li>Nenhuma partida registrada.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    class TicTacXprtEngine {
+      constructor() {
+        this.WINNING_COMBOS = [
+          [0, 1, 2], [3, 4, 5], [6, 7, 8],
+          [0, 3, 6], [1, 4, 7], [2, 5, 8],
+          [0, 4, 8], [2, 4, 6]
+        ];
+        this.scores = { X: 0, O: 0, tie: 0 };
+        this.matchHistory = [];
+        this.maxRounds = 9;
+        this.currentRound = 0;
+        this.reset();
+      }
+
+      reset(scenario = 'normal') {
+        this.board = Array(9).fill(null);
+        this.currentPlayer = 'X';
+        this.gameHistoryStr = '';
+        this.isGameOver = false;
+        this.scenario = scenario;
+        this.currentRound = 0;
+        this.maxRounds = scenario === 'rounds' ? 6 : 9;
+
+        if (scenario === 'block') {
+          const randomCell = Math.floor(Math.random() * 9);
+          this.board[randomCell] = 'BLOCK';
+        } else if (scenario === 'fill') {
+          this.board[0] = 'X';
+          this.board[8] = 'O';
+          this.gameHistoryStr = '08';
+        }
+      }
+
+      makeMove(index) {
+        if (this.board[index] !== null || this.isGameOver) return false;
+
+        this.board[index] = this.currentPlayer;
+        this.gameHistoryStr += index.toString();
+        this.currentRound++;
+        
+        const winInfo = this.checkWin(this.board, this.currentPlayer);
+        if (winInfo) {
+          this.isGameOver = true;
+          this.scores[this.currentPlayer]++;
+          return { status: 'win', winner: this.currentPlayer, combo: winInfo.combo };
+        }
+
+        const freeBoxes = this.getEmptyIndices();
+        if (freeBoxes.length === 0 || this.currentRound >= this.maxRounds) {
+          this.isGameOver = true;
+          this.scores.tie++;
+          return { status: 'tie' };
+        }
+
+        this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+        return { status: 'continue' };
+      }
+
+      checkWin(board, player) {
+        for (const combo of this.WINNING_COMBOS) {
+          if (combo.every(idx => board[idx] === player)) {
+            return { combo };
+          }
+        }
+        return null;
+      }
+
+      getEmptyIndices(board = this.board) {
+        return board
+          .map((val, idx) => val === null ? idx : null)
+          .filter(val => val !== null);
+      }
+
+      // IA Selector
+      getAIMove(aiLevel, aiPlayer) {
+        const emptyIndices = this.getEmptyIndices();
+        const opponent = aiPlayer === 'X' ? 'O' : 'X';
+
+        switch (aiLevel) {
+          case 'easy':
+            return emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+
+          case 'piece_of_cake':
+            if (this.board[4] === null) return 4;
+            const corners = [0, 2, 6, 8].filter(i => this.board[i] === null);
+            if (corners.length > 0) return corners[Math.floor(Math.random() * corners.length)];
+            return emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+
+          case 'expert':
+            return this.findWinningOrBlockingMove(aiPlayer, opponent) ?? 
+                   emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+
+          case 'daniel_san':
+            return this.findWinningOrBlockingMove(aiPlayer, opponent) ?? 
+                   this.findThreatMove(aiPlayer) ?? 
+                   emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+
+          case 'miyagi':
+            return this.findWinningOrBlockingMove(aiPlayer, opponent) ?? 
+                   this.findForkMove(aiPlayer) ?? 
+                   this.findThreatMove(aiPlayer) ?? 
+                   emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+
+          case 'ninja':
+            return this.findWinningOrBlockingMove(aiPlayer, opponent) ?? 
+                   this.findForkMove(aiPlayer) ?? 
+                   this.blockForkMove(aiPlayer, opponent) ?? 
+                   emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+
+          case 'jedi':
+            return this.minimaxMove(aiPlayer, 3); // Busca com profundidade limitada
+
+          case 'yoda':
+            // Prioriza empates seguros e controle
+            return this.minimaxMove(aiPlayer, 9, 'defensive');
+
+          case 'darth_vader':
+            // Prioriza sequências de ataque mais rápidas e agressivas
+            return this.minimaxMove(aiPlayer, 9, 'aggressive');
+
+          default:
+            return emptyIndices[0];
+        }
+      }
+
+      findWinningOrBlockingMove(player, opponent) {
+        const empty = this.getEmptyIndices();
+        // 1. Tenta Vencer
+        for (let idx of empty) {
+          this.board[idx] = player;
+          if (this.checkWin(this.board, player)) {
+            this.board[idx] = null;
+            return idx;
+          }
+          this.board[idx] = null;
+        }
+        // 2. Bloqueia Adversário
+        for (let idx of empty) {
+          this.board[idx] = opponent;
+          if (this.checkWin(this.board, opponent)) {
+            this.board[idx] = null;
+            return idx;
+          }
+          this.board[idx] = null;
+        }
+        return null;
+      }
+
+      findThreatMove(player) {
+        const empty = this.getEmptyIndices();
+        for (let idx of empty) {
+          this.board[idx] = player;
+          let threatCount = 0;
+          for (let combo of this.WINNING_COMBOS) {
+            if (combo.includes(idx) && combo.filter(i => this.board[i] === player).length === 2 && combo.some(i => this.board[i] === null)) {
+              threatCount++;
+            }
+          }
+          this.board[idx] = null;
+          if (threatCount > 0) return idx;
+        }
+        return null;
+      }
+
+      findForkMove(player) {
+        const empty = this.getEmptyIndices();
+        for (let idx of empty) {
+          this.board[idx] = player;
+          let winningPaths = 0;
+          for (let combo of this.WINNING_COMBOS) {
+            if (combo.filter(i => this.board[i] === player).length === 2 && combo.some(i => this.board[i] === null)) {
+              winningPaths++;
+            }
+          }
+          this.board[idx] = null;
+          if (winningPaths >= 2) return idx;
+        }
+        return null;
+      }
+
+      blockForkMove(player, opponent) {
+        return this.findForkMove(opponent);
+      }
+
+      minimaxMove(aiPlayer, maxDepth = 9, strategy = 'defensive') {
+        const emptyIndices = this.getEmptyIndices();
+        let bestScore = -Infinity;
+        let bestMove = emptyIndices[0];
+        const humanPlayer = aiPlayer === 'X' ? 'O' : 'X';
+
+        for (const index of emptyIndices) {
+          this.board[index] = aiPlayer;
+          const score = this.minimax(this.board, 0, false, aiPlayer, humanPlayer, -Infinity, Infinity, maxDepth, strategy);
+          this.board[index] = null;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMove = index;
+          }
+        }
+        return bestMove;
+      }
+
+      minimax(board, depth, isMaximizing, aiPlayer, humanPlayer, alpha, beta, maxDepth, strategy) {
+        if (this.checkWin(board, aiPlayer)) return strategy === 'aggressive' ? (10 - depth) : 10;
+        if (this.checkWin(board, humanPlayer)) return strategy === 'aggressive' ? (depth - 10) : -10;
+        
+        const empty = this.getEmptyIndices(board);
+        if (empty.length === 0 || depth >= maxDepth) return 0;
+
+        if (isMaximizing) {
+          let maxEval = -Infinity;
+          for (const index of empty) {
+            board[index] = aiPlayer;
+            const evalScore = this.minimax(board, depth + 1, false, aiPlayer, humanPlayer, alpha, beta, maxDepth, strategy);
+            board[index] = null;
+            maxEval = Math.max(maxEval, evalScore);
+            alpha = Math.max(alpha, evalScore);
+            if (beta <= alpha) break;
+          }
+          return maxEval;
+        } else {
+          let minEval = Infinity;
+          for (const index of empty) {
+            board[index] = humanPlayer;
+            const evalScore = this.minimax(board, depth + 1, true, aiPlayer, humanPlayer, alpha, beta, maxDepth, strategy);
+            board[index] = null;
+            minEval = Math.min(minEval, evalScore);
+            beta = Math.min(beta, evalScore);
+            if (beta <= alpha) break;
+          }
+          return minEval;
+        }
+      }
+    }
+
+    // UI Controller
+    document.addEventListener('DOMContentLoaded', () => {
+      const engine = new TicTacXprtEngine();
+
+      const cells = document.querySelectorAll('.cell');
+      const statusEl = document.getElementById('status');
+      const aiSelect = document.getElementById('aiSelect');
+      const scenarioSelect = document.getElementById('scenarioSelect');
+      const btnReset = document.getElementById('btnReset');
+      const scoreX = document.getElementById('scoreX');
+      const scoreO = document.getElementById('scoreO');
+      const scoreTie = document.getElementById('scoreTie');
+      const historyList = document.getElementById('historyList');
+
+      const updateUI = (result = null) => {
+        engine.board.forEach((val, idx) => {
+          cells[idx].className = 'cell';
+          if (val === 'BLOCK') {
+            cells[idx].classList.add('blocked');
+            cells[idx].textContent = '🚫';
+          } else if (val) {
+            cells[idx].classList.add(val.toLowerCase());
+            cells[idx].textContent = val;
+          } else {
+            cells[idx].textContent = '';
+          }
+        });
+
+        scoreX.textContent = engine.scores.X;
+        scoreO.textContent = engine.scores.O;
+        scoreTie.textContent = engine.scores.tie;
+
+        if (result && result.status === 'win') {
+          result.combo.forEach(idx => cells[idx].classList.add('winner'));
+          statusEl.textContent = `Jogador ${result.winner} Venceu!`;
+          logHistory(`Vitória de ${result.winner}`);
+        } else if (result && result.status === 'tie') {
+          statusEl.textContent = 'Empate (Deu Velha)!';
+          logHistory('Empate');
+        } else {
+          statusEl.textContent = `Vez do Jogador ${engine.currentPlayer}`;
+        }
+      };
+
+      const logHistory = (outcome) => {
+        const aiName = aiSelect.options[aiSelect.selectedIndex].text;
+        const scenarioName = scenarioSelect.options[scenarioSelect.selectedIndex].text;
+        const record = `${outcome} | Mode: ${aiName} (${scenarioName}) | Trajeto: "${engine.gameHistoryStr}"`;
+        
+        engine.matchHistory.unshift(record);
+        
+        historyList.innerHTML = engine.matchHistory
+          .slice(0, 10)
+          .map(item => `<li>${item}</li>`)
+          .join('');
+      };
+
+      const handleCellClick = (e) => {
+        const index = parseInt(e.target.dataset.index, 10);
+        if (engine.board[index] !== null || engine.isGameOver) return;
+
+        const result = engine.makeMove(index);
+        updateUI(result);
+
+        const aiLevel = aiSelect.value;
+        if (!engine.isGameOver && aiLevel !== 'pvp' && engine.currentPlayer === 'O') {
+          setTimeout(() => {
+            const aiMove = engine.getAIMove(aiLevel, 'O');
+            if (aiMove !== undefined) {
+              const aiResult = engine.makeMove(aiMove);
+              updateUI(aiResult);
+            }
+          }, 200);
+        }
+      };
+
+      const resetGame = () => {
+        engine.reset(scenarioSelect.value);
+        updateUI();
+      };
+
+      cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+      btnReset.addEventListener('click', resetGame);
+      aiSelect.addEventListener('change', resetGame);
+      scenarioSelect.addEventListener('change', resetGame);
+
+      resetGame();
+    });
+  </script>
+</body>
+</html>
