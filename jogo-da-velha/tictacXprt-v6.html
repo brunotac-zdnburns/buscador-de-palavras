@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+
+<!--
+Revisar todo o código de modo a simplificar as funções, considerando o registro e passagem das jogadas como string ao invés de vetores. 
+Usar vetores apenas para avaliação das jogadas e fim de jogo, mas não usar vetores como parâmetros de funções.
+Usar sempre a função de carregamento dos vetores a partir da string recebida.
+-->
+
+
+
+<style>
+	/* CSS Code */
+	/* Heading */
+	
+	h1 {
+		color: dodgerblue;
+		font-size: 25px;
+		font-family: Verdana, Geneva, Tahoma, sans-serif;
+	}
+
+	#title2 {
+		color: orangered;
+		font-size: 25px;
+		font-family: Verdana, Geneva, Tahoma, sans-serif;
+	}
+
+	/* 3*3 Grid */
+	#b0, #b1, #b2, 
+	#b3, #b4, #b5,
+	#b6, #b7, #b8 {
+		width: 80px;
+		height: 52px;
+		margin: auto;
+		border: 2px solid gray;
+		border-radius: 6px;
+		font-size: 30px;
+		text-align: center;
+	}
+
+	/* Reset Button */
+	#but_reset {
+		box-sizing: border-box;
+		width: 60px;
+		height: 25px;
+		border: 1px solid dodgerblue;
+		margin: auto;
+		border-radius: 4px;
+		font-family: Verdana,
+			Geneva, Tahoma, sans-serif;
+
+		background-color: dodgerblue;
+		color: white;
+		font-size: 14px;
+		cursor: pointer;
+	}
+
+	/* Load Button */
+	#but_load {
+		box-sizing: border-box;
+		width: 60px;
+		height: 30px;
+		border: 1px solid dodgerblue;
+		margin: auto;
+		border-radius: 4px;
+		font-family: Verdana,
+			Geneva, Tahoma, sans-serif;
+
+		background-color: dodgerblue;
+		color: white;
+		font-size: 14px;
+		cursor: pointer;
+	}
+
+	/* Player turn space */
+	#print {
+		font-family: Verdana,
+			Geneva, Tahoma, sans-serif;
+
+		color: dodgerblue;
+		font-size: 20px;
+	}
+
+	/* Main Container */
+	#main {
+		text-align: center;
+	}
+
+	/* Game Instruction Text */
+	#ins, #choices {
+		font-family: Verdana,
+			Geneva, Tahoma, sans-serif;
+			
+		color: dodgerblue;
+		font-size: 16px;
+	}
+
+	input:disabled {
+		/*css declaration to change colors of disable input*/
+		background: #efeff6;
+		/*color: black;*/
+	}
+
+</style>
+
+
+
+
+
+
+
+
+
+
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+	<div id="main">
+		<h1>TIC TAC TOE</h1>
+		<!--p id="title2">TIC TAC TOE - O Jogo da Velha!</p-->
+
+		<!-- Instructions for the Function of Buttons -->
+		<dialog id="HelpDialog"></dialog>
+		
+		<!-- Game Instructions -->
+		<p id="ins">Game starts by just Tap on box
+			<br><br>
+			First Player starts as <b>Player X</b><br>
+			And Second Player as <b>Player O</b>
+		</p>
+
+		<!-- Space to show player turn -->
+		<p id="print">Player <b>X</b> turn</p>
+
+		<dialog id="GameOver"></dialog>
+
+		<br><br>
+		<!-- 3*3 grid of Boxes -->
+		<input type="text" id="b0" onclick="funcButton(0)" readonly>
+		<input type="text" id="b1" onclick="funcButton(1)" readonly>
+		<input type="text" id="b2" onclick="funcButton(2)" readonly>
+		<br><br>
+
+		<input type="text" id="b3" onclick="funcButton(3)" readonly>
+		<input type="text" id="b4" onclick="funcButton(4)" readonly>
+		<input type="text" id="b5" onclick="funcButton(5)" readonly>
+		<br><br>
+
+		<input type="text" id="b6" onclick="funcButton(6)" readonly>
+		<input type="text" id="b7" onclick="funcButton(7)" readonly>
+		<input type="text" id="b8" onclick="funcButton(8)" readonly>
+
+		<!-- Grid end here -->
+		<br><br>
+		
+		<p>
+		<button id="but_load" onclick="limpaEntradas()">Clear</button> 
+		<button id="but_load" onclick="funcLuck()">Luck</button> 
+		<button id="but_load" onclick="funcLoad()">Load</button> 
+		<button id="but_load" onclick="NovoJogo()">New</button> 
+		</p>
+		<p>
+		<button id="but_load" onclick="funcPlayRandom()">Rand</button>
+		<button id="but_load" onclick="chamaJogadaPC()">Xprt</button>
+		<button id="but_load" onclick="funcPlayAllRandom()">All</button>
+		<button id="but_load" onclick="funcBloqueia()">Bloq</button>
+		</p>
+		
+		<p id="choices" style="font-size:90%;">
+		Fill: <input type="text" id="in_preencher" size=2 value=2> &emsp; 
+		Bloq: <input type="text" id="in_bloquear" size=2 value=2> &emsp; 
+		Rnds: <input type="text" id="in_rodadas" size=2 value=4>
+		</p>
+		
+		<p id="choices">
+		PC:<input type="checkbox" id="checkPCmode" onclick="funcPCPlayerClick()" checked> &emsp; 
+		as X:<input type="checkbox" id="checkPCplayer" onclick="funcPCPlayerClick()" checked> &emsp; 
+		level:
+		<select id="choiceLevel">
+			<option value="0">0 - Easy</option>
+			<option value="1">1 - Cake</option>
+			<option value="2">2 - Expert</option>
+			<option value="3">3 - Daniel San</option>
+			<option value="4">4 - Miyagi</option>
+			<option value="5">5 - Ninja</option>
+			<option value="6">6 - Luke Skywalker</option>
+			<option value="7">7 - Jedi</option>
+			<option value="8" selected>8 - Yoda</option -->
+			<option value="9">9 - Darth Vader</option -->
+		</select>
+		</p>
+		
+		<p>
+		<!-- Button to reset game -->
+		<button id="but_reset" onclick="funcReset()">RESET</button>
+		<button id="but_reset" onclick="funcHelp()">?</button>
+		</p>
+		
+	</div>
+	
+</body>
+
+
+
+
+
+
+
+<script type="text/javascript">
+
+
+// Here onwards, functions check turn of the player
+// and put accordingly value X or O
+var flagXO = 'X';
+//var b0, b1, b2, b3, b4, b5, b6, b7, b8;
+
+var counterTurns = 0;
+var counterGames = 0;
+var counterXWins = 0;
+var counterOWins = 0;
+var counterTies  = 0;
+
+var lista_resultados = [];
+var jogoatual = '';
+
+var fullboxes = 0;
+var bloqboxes = 0;
+var bloqrounds = 0;
+
+/* Setting DOM to all boxes or input field
+function readBoxValues() {
+	b0 = document.getElementById("b0").value;
+	b1 = document.getElementById("b1").value;
+	b2 = document.getElementById("b2").value;
+	b3 = document.getElementById("b3").value;
+	b4 = document.getElementById("b4").value;
+	b5 = document.getElementById("b5").value;
+	b6 = document.getElementById("b6").value;
+	b7 = document.getElementById("b7").value;
+	b8 = document.getElementById("b8").value;
+}*/
+
+function funcHelp() {
+	var message = "Functions of each button:<br><br>";
+	
+	message += "Button <b>Clear</b>: clear the entrie values<br>";
+	message += "Player  won!!!<br>";
+	message += "Player  won!!!<br><br>";
+	message += "<button id='but_reset' onclick='closeHelp()'>Close</button><br>";
+	
+	document.getElementById('HelpDialog').innerHTML = message;
+
+	var x = document.getElementById("HelpDialog"); 
+	x.show(); 
+}
+
+// Closes the dialog after the time setted
+function closeHelp() { 
+	var x = document.getElementById("HelpDialog"); 
+	x.close(); 
+}
+
+/* Copiando a função aqui para consultar mais facilmente.
+function ConsultaResultado00000(jogo){
+	if (AvaliaCasa( jogo, -1,  1, 3, 1 )) return "X ganhou!";
+	else
+	if (AvaliaCasa( jogo, -1, -1, 3, 1 )) return "O ganhou!";
+	else
+	if (jogo.length < 9) return "O jogo ainda não acabou!";
+	else return "Deu velha!";
+}*/
+
+function funcButton(but) {
+	jogoatual += '' + but;
+	document.getElementById('b'+but).value = flagXO;
+	document.getElementById('b'+but).disabled = true;
+	if (flagXO == 'X') flagXO = 'O';
+	else flagXO = 'X';
+	counterTurns++;
+	if (counterTurns >= bloqrounds) setFreeTheEmptyBoxes();
+
+	funcChangeBoxColor(counterTurns, but);
+
+	funcCheckWinner();
+}
+
+/*
+function atualizaBotao(but, flagXO){
+	document.getElementById('b'+but).value = flagXO;
+}
+*/
+
+// Function called whenever user tab on any box
+function funcCheckWinner() {
+
+	//readBoxValues();
+	// ***  Usar as funções novas de teste de fim de jogo e retorno do resultado, passando a string do jogo, ou até mesmo lendo os valores atuais e montando string ou vetor.
+	
+	var resultado = ConsultaResultado(jogoatual);
+	
+	// Checking if Player X won. If so, disable all the other fields
+	if (resultado == "X ganhou!") {
+		ShowWinner('X');
+		funcDisableBoxes();
+		counterGames++;
+		counterXWins++;
+	}
+
+	// Checking if Player O won. If so, disable all the other fields
+	else if (resultado == "O ganhou!") {
+		ShowWinner('O');
+		funcDisableBoxes();
+		counterGames++;
+		counterOWins++;
+	}
+
+
+	// Here, Checking about Tie
+	else if (resultado == "Deu velha!") {
+		ShowWinner("tie");
+		counterGames++;
+		counterTies++;
+	}
+	
+	// If the match does not finished, shows who is the next player
+	else {
+		document.getElementById('print').innerHTML = "Player <b>" + flagXO + "</b> turn (" + counterTurns + ")";
+		if (funcPCmodeOn() && funcPCPlayer() == flagXO) chamaJogadaPC();
+	}
+	
+	atualizaPlacar();
+}
+
+
+
+/*
+
+Entradas:
+- Nº de casas a serem preenchidas
+- Nº de casas a serem bloqueadas
+- Nº de rodadas a ficarem bloqueadas
+
+
+Opçao 1
+Sorteia quantas casas serão preenchidas
+Sorteia o num de cada casa a ser preenchida 
+Antes de preencher, tem que testar se não vai acabar a partida
+Preencher e passar para a prox a ser preenchida
+
+
+Opçao 2
+Sorteia alguma casa para não ser preenchida nas primeiras X rodadas
+
+
+Opçao 3
+Escolher as casas a serem bloqueadas (e nº de rodadas)
+
+
+Desafio 1
+Computador nivel facil: marcaçoes aleatorias
+
+Desafio 2
+Computador nivel dificil: marcaçoes para tornar o mais dificil possivel a vitoria do jogador
+
+Desafio 3
+Criar cenários iniciais que sejam interessantes
+
+*/
+
+
+
+//modeload = 0;
+
+function funcLoad(){
+	
+	limpaJogo();
+	
+	var pcmodetemp = funcPCmodeOn();
+	document.getElementById('checkPCmode').checked = false;
+
+	fullboxes  = Number(document.getElementById('in_preencher').value);
+	bloqboxes  = Number(document.getElementById('in_bloquear').value);
+	bloqrounds = Number(document.getElementById('in_rodadas').value);
+
+	if (fullboxes > 4) fullboxes = 4;
+	if (bloqboxes > 6) bloqboxes = 6;
+	if ( (fullboxes + bloqboxes > 6) && (bloqboxes > 0) ) bloqboxes = 6 - fullboxes;
+	if (bloqboxes > 0  &&  bloqrounds == 0) bloqrounds = 1;
+	if (bloqrounds > 8 - fullboxes - bloqboxes ) bloqrounds = 8 - fullboxes - bloqboxes;
+
+	document.getElementById('in_preencher').value = fullboxes;
+	document.getElementById('in_bloquear').value = bloqboxes;
+	document.getElementById('in_rodadas').value = bloqrounds;
+	
+	bloqrounds = bloqrounds + fullboxes;
+
+	funcLoadBoxes(fullboxes);
+	funcBloqBoxes(bloqboxes);
+
+	document.getElementById('checkPCmode').checked = pcmodetemp;
+	if (pcmodetemp && funcPCPlayer() == flagXO) chamaJogadaPC();
+}
+
+function funcLuck(){
+	//if (!fullboxes) 
+		document.getElementById('in_preencher').value = funcRandom0to(5);
+	//if (!bloqboxes) 
+		document.getElementById('in_bloquear').value = funcRandom0to(5);
+	//if (!bloqrounds) 
+		document.getElementById('in_rodadas').value = funcRandom0to(5);
+
+	funcLoad();
+}
+
+// Function to genarate a number beetween 0 and max-1
+function funcRandom0to(max){
+	var num = Math.random();
+	return Math.trunc(num*max);
+}
+
+function funcPlayRandom(){
+	if (countFreeBoxes() == 0) limpaJogo();
+	funcFillBoxes(1);
+}
+
+function funcPlayAllRandom(){
+	limpaJogo();
+	//turnOffPCmode():
+	document.getElementById('checkPCmode').checked = false;
+	funcFillBoxes(9);
+}
+
+function NovoJogo(){
+	limpaJogo();
+	//if (document.getElementById('checkPCmode').checked) ...
+	funcPCPlayerClick();
+}
+
+function limpaJogo(){
+	counterTurns = 0;
+	bloqrounds = 0;
+	jogoatual = '';
+	flagXO = 'X';
+	var i = 0;
+	while (i < 9) {
+		document.getElementById("b"+i).value = "";
+		document.getElementById("b"+i).disabled = false;
+		funcChangeBoxColor(0, i);
+		i++;
+	}
+	document.getElementById('print').innerHTML = "Player <b>X</b> turn (" + counterTurns + ")";
+	//funcPCPlayerClick();
+}
+
+function funcBloqueia(){
+	var i = 0;
+	while (i < 9) {
+		document.getElementById("b"+i).value = "";
+		funcChangeBoxColor(0, i);
+		i++;
+	}
+	counterTurns = 0;
+	jogoatual = '';
+	bloqrounds = Number(document.getElementById('in_rodadas').value);
+	flagXO = 'X';
+	document.getElementById('print').innerHTML = "Player <b>X</b> turn (" + counterTurns + ")";
+	//funcPCPlayerClick();
+}
+
+function funcFillBoxes(n){
+	var i = 0;
+	var boxnum = 0;
+	while ( (i < n) && (countFreeBoxes() > 0) ) {
+		boxnum = funcRandom0to(9);
+		if (testFreeBox(boxnum)) {
+			funcButton(boxnum);
+			i++;
+		}
+	}
+}
+
+function funcLoadBoxes(n){
+	var i = 0;
+	var boxnum = 0;
+	//while ( (i < n) && (countFreeBoxes() > 0) && (counterTurns < n) ) {
+	while ( (counterTurns < n) && (countFreeBoxes() > 0) ) {
+		boxnum = funcRandom0to(9);
+		if (testFreeBox(boxnum)) {
+			funcButton(boxnum);
+			i++;
+		}
+	}
+}
+
+
+function testFreeBox(i){
+	return ( !document.getElementById("b"+i).disabled  &&  !Boolean(document.getElementById("b"+i).value) );
+}
+
+
+function funcBloqBoxes(n){
+	var i = 0;
+	var boxnum = 0;
+	while ( (i < n) && (countFreeBoxes() > 0) ) {
+		boxnum = funcRandom0to(9);
+		if (testFreeBox(boxnum)) {
+			funcBloqBox(boxnum);
+			i++;
+		}
+	}
+}
+
+function funcBloqBox(i){
+	if (testFreeBox(i)) {
+		document.getElementById("b"+i).disabled = true;
+		return true;
+	}
+	else return false;
+}
+
+/*
+function funcTestWin(){
+	readBoxValues();
+	return ((b1 == b2 && b2 == b3) ||
+			(b4 == b5 && b5 == b6) ||
+			(b7 == b8 && b8 == b9) ||
+			(b1 == b4 && b4 == b7) ||
+			(b2 == b5 && b5 == b8) ||
+			(b3 == b6 && b6 == b9) ||
+			(b1 == b5 && b5 == b9) ||
+			(b3 == b5 && b5 == b7) )
+}
+*/
+
+function countEmptyBoxes(){
+	var i = 0;
+	var counter = 0;
+	while (i < 9) {
+		if (!document.getElementById("b"+i).value) counter++;
+		i++;
+	}
+	return counter;
+}
+
+function countFreeBoxes(){
+	var i = 0;
+	var counter = 0;
+	while (i < 9) {
+		if (!document.getElementById("b"+i).disabled) counter++;
+		i++;
+	}
+	return counter;
+}
+
+function limpaEntradas() {
+	fullboxes = 0;
+	bloqboxes = 0;
+	bloqrounds = 0;
+	document.getElementById("in_preencher").value = "";
+	document.getElementById("in_bloquear").value = "";
+	document.getElementById("in_rodadas").value = "";
+}
+
+function setFreeTheEmptyBoxes(){
+	var i = 0;
+	while (i < 9) {
+		if (document.getElementById("b"+i).value == "")
+			document.getElementById("b"+i).disabled = false;
+		i++;
+	}
+}
+
+
+function funcPCmodeOn(){
+	return document.getElementById("checkPCmode").checked;
+}
+
+function funcPCPlayer(){
+	if (document.getElementById("checkPCplayer").checked) return "X";
+	else return "O";
+}
+
+function funcPCPlayerClick(){
+	//alert('PC player: ' + 	funcPCPlayer() + '; and flag: ' + flagXO);
+	if (funcPCmodeOn() && funcPCPlayer() == flagXO) chamaJogadaPC(); //funcFillBoxes(1);
+}
+
+
+
+
+
+
+
+// Function to show who is the winner
+function ShowWinner( winner ){
+	var message = "";
+	
+	if (winner == 'tie') message = "Match Tie!";
+	else message = "Player " + winner + " won!!!<br>";
+	
+	document.getElementById('print').innerHTML = message;
+	document.getElementById('GameOver').innerHTML = message;
+
+	var x = document.getElementById("GameOver"); 
+	x.show(); 
+	setTimeout(closeDialog, 3000); 
+}
+
+// Closes the dialog after the time setted
+function closeDialog() { 
+	var x = document.getElementById("GameOver"); 
+	x.close(); 
+}
+
+
+
+
+
+// Function to disable the boxes when the game is finished
+function funcDisableBoxes() {
+	document.getElementById("b0").disabled = true;
+	document.getElementById("b1").disabled = true;
+	document.getElementById("b2").disabled = true;
+	document.getElementById("b3").disabled = true;
+	document.getElementById("b4").disabled = true;
+	document.getElementById("b5").disabled = true;
+	document.getElementById("b6").disabled = true;
+	document.getElementById("b7").disabled = true;
+	document.getElementById("b8").disabled = true;
+	//alert('Disabled');
+}
+
+
+
+// Function to reset game
+function funcReset() {
+	location.reload();
+}
+
+
+
+function atualizaPlacar(){
+	var painel = "";
+	painel += "Matches <b>played</b> = <b>"   + counterGames + "</b><br>";
+	painel += "Matches won by <b>X</b> = <b>" + counterXWins + "</b><br>";
+	painel += "Matches won by <b>O</b> = <b>" + counterOWins + "</b><br>";
+	painel += "Matches <b>tied</b> = <b>"     + counterTies  + "</b><br>";
+	document.getElementById('ins').innerHTML = painel;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function funcChangeBoxColor(turn, but){
+//		border: 1px solid red;
+//		"property:value;"
+	var estilo = [];
+	estilo[0] = "width: 80px; height: 52px; margin: auto; border: 2px solid gray; border-radius: 6px; font-size: 30px; text-align: center;";
+	estilo[1] = "width: 80px; height: 52px; margin: auto; border: 2px solid red; border-radius: 6px; font-size: 30px; text-align: center;";
+	estilo[2] = "width: 80px; height: 52px; margin: auto; border: 2px solid orange; border-radius: 6px; font-size: 30px; text-align: center;";
+	estilo[3] = "width: 80px; height: 52px; margin: auto; border: 2px solid gold; border-radius: 6px; font-size: 30px; text-align: center;";
+	if (turn < 4) document.getElementById('b'+but).style = estilo[turn];
+
+}
+
+
+function pcLevel(level){
+	return (level == document.getElementById('choiceLevel').value);
+}
+
+function chamaJogadaPC(){
+	if (countFreeBoxes() == 0) limpaJogo();
+	//	setTimeout(closeDialog, 3000); 
+	/*
+	if (pcLevel("Easy")) setTimeout(funcPlayEasy, 200);
+	else
+	if ( pcLevel("Yoda")  ||  pcLevel("Darth Vader") ) setTimeout(funcPlayYoda, 200);
+	else setTimeout(funcPlayExpert, 200);
+	*/
+	switch (document.getElementById('choiceLevel').value) {
+		case '0':
+			//funcButton(4);
+			//funcFillBoxes(1);
+			setTimeout(funcPlayEasy, 200);
+			break;
+		case '1':
+			setTimeout(funcPlayCake, 200);
+			break;
+		case '2':
+			setTimeout(funcPlayVanDaime, 200);
+			break;
+		case '3':
+			setTimeout(funcPlayCobra, 200);
+			break;
+		case '4':
+			setTimeout(funcPlayDaniSan, 200);
+			break;
+		case '5':
+			setTimeout(funcPlayExpert, 200);
+			break;
+		case '6':
+			setTimeout(funcPlayYoda, 200);
+			break;
+		case '7':
+			setTimeout(funcPlayYoda, 200);
+			break;
+		case '8':
+			setTimeout(funcPlayYoda, 200);
+			break;
+		case '9':
+			setTimeout(funcPlayYoda, 200);
+			break;
+		default:
+			null;
+	}
+}
+
+function funcPlayEasy(){
+	funcFillBoxes(1);
+}
+
+function funcPlayCake(){
+	if (testFreeBox(4) && ( AvaliaCasa(jogoatual, 4, 1, 3, 1) || AvaliaCasa(jogoatual, 4, -1, 3, 1) )) funcButton(4);
+	else funcFillBoxes(1);
+}
+
+function funcPlayVanDaime(){
+	var flag = Math.pow(-1, (jogoatual.length) );
+	var consulta = "";
+	var i = 0;
+	while (i < 9) {
+		if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, flag, 3, 1) )	{
+			funcButton(i);
+			consulta = "sai";
+			break;
+		}
+		i++;
+	}
+	
+	if (consulta == "") {
+		i = 0;
+		while (i < 9) {
+			if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, -flag, 3, 1) )	{
+				funcButton(i);
+				consulta = "sai";
+				break;
+			}
+			i++;
+		}
+	}
+	//alert("funcPlayVanDaime - jogoatual: " + jogoatual + "; - flag: " + flag + "; - consulta: " + consulta);
+	if (consulta == "") funcFillBoxes(1);
+}
+
+function funcPlayCobra(){
+	var flag = Math.pow(-1, (jogoatual.length) );
+	var consulta = "";
+	var i = 0;
+	while (i < 9) {
+		if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, flag, 3, 1) )	{
+			funcButton(i);
+			consulta = "sai";
+			break;
+		}
+		i++;
+	}
+	
+	if (consulta == "") {
+		i = 0;
+		while (i < 9) {
+			if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, -flag, 3, 1) )	{
+				funcButton(i);
+				consulta = "sai";
+				break;
+			}
+			i++;
+		}
+	}
+	
+	if (consulta == "") {
+		i = 0;
+		while (i < 9) {
+			if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, flag, 2, 1) )	{
+				funcButton(i);
+				consulta = "sai";
+				break;
+			}
+			i++;
+		}
+	}
+	
+	if (consulta == "") funcFillBoxes(1);
+}
+
+function funcPlayDaniSan(){
+	var flag = Math.pow(-1, (jogoatual.length) );
+	var consulta = "";
+	var i = 0;
+	while (i < 9) {
+		if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, flag, 3, 1) )	{
+			funcButton(i);
+			consulta = "sai";
+			break;
+		}
+		i++;
+	}
+	
+	if (consulta == "") {
+		i = 0;
+		while (i < 9) {
+			if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, -flag, 3, 1) )	{
+				funcButton(i);
+				consulta = "sai";
+				break;
+			}
+			i++;
+		}
+	}
+	
+	if (consulta == "") {
+		i = 0;
+		while (i < 9) {
+			if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, flag, 2, 2) )	{
+				funcButton(i);
+				consulta = "sai";
+				break;
+			}
+			i++;
+		}
+	}
+	
+	if (consulta == "") {
+		i = 0;
+		while (i < 9) {
+			if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, -flag, 2, 2) )	{
+				funcButton(i);
+				consulta = "sai";
+				break;
+			}
+			i++;
+		}
+	}
+	
+	if (consulta == "") {
+		i = 0;
+		while (i < 9) {
+			if ( testFreeBox(i) &&  AvaliaCasa(jogoatual, i, flag, 2, 1) )	{
+				funcButton(i);
+				consulta = "sai";
+				break;
+			}
+			i++;
+		}
+	}
+	
+	if (consulta == "") funcFillBoxes(1);
+}
+
+function funcPlayExpert(){
+	//alert("1- expert case: " + counterTurns);
+	//if (countFreeBoxes() == 0) limpaJogo();
+			alert(readRound2());
+	
+	switch (counterTurns) {
+		case 0:
+			//funcButton(4);
+			funcFillBoxes(1);
+			break;
+		case 1:
+			if (testFreeBox(4)) funcButton(4);
+			else
+			if (testFreeBox(2)) funcButton(2);
+			else
+			if (testFreeBox(0)) funcButton(0);
+			else
+			if (testFreeBox(6)) funcButton(6);
+			else
+			if (testFreeBox(8)) funcButton(8);
+			/*
+			else if (readGame1B() && (testFreeBox(4))) {
+				funcButton(4);
+			}
+			else if (readGame1C() && (testFreeBox(4))) {
+				funcButton(4);
+			} 
+			*/
+			else funcFillBoxes(1);
+			break;
+		case 2:
+			//Esta jogada ainda está aleatória. Para ficar mais difícil, tem que ser feita a leitura das duas casas preenchidas e definir as melhores opções.
+			//if (pcLevel('5')) funcFillBoxes(1);
+			//else jogadaJedi();
+			jogadaExpert();
+			break;
+		case 3:
+			//if ((pcLevel('6') || pcLevel('7'))  &&  readRound2() == "X.. O.. .X.") funcButton(4);
+			//else 
+			jogadaExpert();
+			break;
+		case 4:
+			jogadaExpert();
+			break;
+		case 5:
+			jogadaExpert();
+			break;
+		case 6:
+			jogadaExpert();
+			break;
+		case 7:
+			jogadaExpert();
+			break;
+		case 8:
+			funcFillBoxes(1);
+			break;
+		default:
+			null;
+	}
+}
+
+function jogadaExpert(){
+	funcPlayDaniSan();
+}
+
+
+
+
+/*
+function readGame1A(){
+	if (counterTurns == 1) return Boolean(b5);
+	else return false;
+}
+
+function readGame1B(){
+	//if (counterTurns == 1) 
+	//return Boolean(b1 || b3 || b7 || b9);
+	//else return false;
+	return Boolean( ! ( testFreeBox(0) && testFreeBox(2) && testFreeBox(6) && testFreeBox(8) ) );
+}
+
+function readGame1C(){
+	if (counterTurns == 1) return Boolean(b2 || b4 || b6 || b8);
+	else return false;
+}
+*/
+
+function jogadaExpertOLD(){
+	var vetor = carregaVetor();
+	//var i = 0;
+	var jogou = false;
+	
+	jogou = testaJogada(vetor, 'win');
+	if (!jogou) jogou = testaJogada(vetor, 'loose');
+
+	if (!jogou && (pcLevel('5') || pcLevel('6'))) jogou = testaJogada2(vetor, 'loose');
+	if (!jogou && (pcLevel('5') || pcLevel('6'))) jogou = testaJogada2(vetor, 'win');
+
+	if (!jogou && pcLevel('7')) jogou = testaJogada2(vetor, 'win');
+	if (!jogou && pcLevel('7')) jogou = testaJogada2(vetor, 'loose');
+	
+	//alert("jogadaExpert: jogou: " + jogou);
+	
+	if (!jogou) funcFillBoxes(1);
+
+}
+
+
+
+function carregaVetor(){
+	var vetor = [];
+	var i = 0;
+	while (i<9) {
+		switch (document.getElementById("b"+i).value) {
+			case flagXO:
+				vetor[i] = 1;
+				break;
+			case "":
+				vetor[i] = 0;
+				break;
+			default:
+				vetor[i] = -1;
+		}
+		i++;
+	}
+	//alert("carregaVetor - vetor: " + vetor);
+	return vetor;
+}
+
+
+function testaJogada(vetor, mode){
+	var jogou = false;
+	var vetor_teste = [];
+	
+	var flag = -1;
+	if (mode == 'win') flag = 1; //else flag = -1;
+	
+	var i = 0;
+	while (i<9) {
+		if (!testFreeBox(i)) continue;
+		//jogou = true;
+		//funcFillBoxes(1);
+		vetor_teste = simulaVetor(vetor, i, flag)
+		jogou = testaCasa(vetor_teste, i, flag, 3);
+		if (jogou) {
+			funcButton(i);
+			break;
+		}
+		i++;
+	}
+	return jogou;
+}
+
+function simulaVetor(vetor, num, flag){
+	var vetor_novo = [];
+	var i = 0;
+	while (i<9) {
+		if (i == num) vetor_novo[i] = flag;
+		else vetor_novo[i] = vetor[i];
+		i++;
+	}
+	return vetor_novo;
+}
+
+
+function testaCasa(vetor, i, flag, score) {
+	//vetor[i] = flag;
+	//alert("function testaCasa: array tested: " + vetor + "   i: " + i);
+	var teste = false;
+	if (flag*(vetor[0]+vetor[1]+vetor[2]) == score) teste = true;
+	if (flag*(vetor[3]+vetor[4]+vetor[5]) == score) teste = true;
+	if (flag*(vetor[6]+vetor[7]+vetor[8]) == score) teste = true;
+	if (flag*(vetor[0]+vetor[3]+vetor[6]) == score) teste = true;
+	if (flag*(vetor[1]+vetor[4]+vetor[7]) == score) teste = true;
+	if (flag*(vetor[2]+vetor[5]+vetor[8]) == score) teste = true;
+	if (flag*(vetor[0]+vetor[4]+vetor[8]) == score) teste = true;
+	if (flag*(vetor[2]+vetor[4]+vetor[6]) == score) teste = true;
+	//alert("function testaCasa:  test: " + teste);
+	return teste;
+}
+
+
+function testaJogada2(vetor, mode){
+	var jogou = false;
+	var vetor_teste = [];
+	
+	var flag = -1;
+	if (mode == 'win') flag = 1; //else flag = -1;
+	
+	var i = 0;
+	while (i<9) {
+		if (!testFreeBox(i)) continue;
+		//jogou = true;
+		//funcFillBoxes(1);
+		vetor_teste = simulaVetor(vetor, i, flag);
+		jogou = testaCasa2(vetor_teste, i, flag, 2);
+		if (jogou) {
+			funcButton(i);
+			break;
+		}
+		i++;
+	}
+	return jogou;
+}
+
+
+function testaCasa2(vetor, i, flag, score) {
+	//vetor[i] = flag;
+	//alert("function testaCasa2: array tested: " + vetor + "   i: " + i);
+	var teste = 0;
+
+	if (flag*(vetor[0]+vetor[1]+vetor[2]) == score) teste++;
+	if (flag*(vetor[3]+vetor[4]+vetor[5]) == score) teste++;
+	if (flag*(vetor[6]+vetor[7]+vetor[8]) == score) teste++;
+	if (flag*(vetor[0]+vetor[3]+vetor[6]) == score) teste++;
+	if (flag*(vetor[1]+vetor[4]+vetor[7]) == score) teste++;
+	if (flag*(vetor[2]+vetor[5]+vetor[8]) == score) teste++;
+	if (flag*(vetor[0]+vetor[4]+vetor[8]) == score) teste++;
+	if (flag*(vetor[2]+vetor[4]+vetor[6]) == score) teste++;
+
+	//alert("function testaCasa2:  test: " + teste);
+	return (teste > 1);
+}
+
+
+function jogadaJedi(){
+	//funcFillBoxes(1);
+	
+	var tabuleiro = readRound2();
+	
+
+	if (tabuleiro == "O.. .X. ..."  ||  tabuleiro == "..O .X. ..."  ||  tabuleiro == "... .X. O.."  ||  tabuleiro == "... .X. ..O"  )
+			funcButton(1);
+	else
+	if (tabuleiro == ".O. .X. ..."  ||  tabuleiro == "... .X. .O."  ||  tabuleiro == "... OX. ..."  ||  tabuleiro == "... .XO ..."  )
+			funcButton(2);
+	else
+
+
+	if (tabuleiro == "XO. ... ..."  ||  tabuleiro == "X.O ... ..."  ||  tabuleiro == "X.. O.. ..."  ||  tabuleiro == "X.. ... O.."  )
+			funcButton(4);
+	else
+	if (tabuleiro == "X.. .O. ..."  ||  tabuleiro == "X.. ..O ..."  ||  tabuleiro == "X.. ... .O."  ||  tabuleiro == "X.. ... ..O"  )
+			funcButton(2);
+	else
+
+
+	if (tabuleiro == ".X. .O. ..."  ||  tabuleiro == "... .OX ...")
+			funcButton(6);
+	else
+	if (tabuleiro == "... .O. .X."  ||  tabuleiro == "... XO. ...")
+			funcButton(2);
+	else
+
+
+	if (tabuleiro == "X.. .O. ..."  ||  tabuleiro == "... .O. X..")
+			funcButton(1);
+	else
+	if (tabuleiro == "..X .O. ..."  ||  tabuleiro == "... .O. ..X"  )
+			funcButton(6);
+	else
+	
+	
+	/*
+	if (tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||
+		tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  )
+			funcButton('b');
+	else
+	if (tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||
+		tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  )
+			funcButton('b');
+	else
+	if (tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||
+		tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  )
+			funcButton('b');
+	else
+	if (tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||
+		tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  )
+			funcButton('b');
+	else
+	if (tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||
+		tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  ||  tabuleiro == "... ... ..."  )
+			funcButton('b');
+	else
+	*/
+	
+	funcFillBoxes(1);
+}
+
+function readRound2(){
+	var tabuleiro = "";
+	var vetor = carregaVetor();
+	var i = 0;
+	while (i<9) {
+		if (i == 3 || i == 6) tabuleiro += " ";
+		if (vetor[i] == 1) tabuleiro += flagXO;
+		else 
+		if (vetor[i] == -1) tabuleiro += adversario();
+		else tabuleiro += ".";
+		i++;
+	}
+	
+	//alert("function readRound2:  vetor: " + vetor + "     tabuleiro: " + tabuleiro);
+	
+	return tabuleiro; //"JEDI in construction!!";
+}
+
+function adversario(){
+	if (flagXO == "X") return "O";
+	else return "X";
+}
+
+/*
+
+Easy: Totalmente aleatório.
+
+Expert: Testa cada casa, se casa vazia, ve se da pra ganhar, se nao, ve se tem chance de perder, se nao, joga aleatorio.
+
+Ninja: (ou Miaghi) Prioriza sempre a defesa, não o ataque (tipo Yoda ou não?).
+
+Jedi: Tenta prever os melhores lances (tipo Ninja?)
+
+testa cada casa
+se casa vazia, ve se da pra ganhar, 
+se nao, ve se tem chance de perder, 
+se nao, simula primeira casa livre chamando novamente a funcao para simular a jogada jedi do adversario, terminando o loop caso vença ou empate
+
+Yoda: Testa casas e pega aleatório entre as jogadas com mais chances de vencer e empate. (pode-se variar o estilo de aleatório tb...)
+
+Darth Vader: Testa casas e pega sempre a jogada com mais chances de vencer.
+
+
+
+
+*** para encerrar uma função mais cedo, testar usar return, mesmo não sendo necessário retornar nada.
+*** para testar o bloqueio da tela, pesquisar sobre bloquear a janela (métodos de window, como o setTimeout).
+
+
+*/
+
+
+
+
+function funcPlayYoda(){
+	//if (countFreeBoxes() == 0) limpaJogo();
+
+	if (counterTurns == 0){
+		funcFillBoxes(1);
+	}
+	else
+	if (counterTurns == 1){
+		var vetor = CarregaJogadas(jogoatual);
+		if ( (vetor[0] == 1)  &&  (testFreeBox(8)) )  funcButton(8); else
+		if ( (vetor[2] == 1)  &&  (testFreeBox(6)) )  funcButton(6); else
+		if ( (vetor[6] == 1)  &&  (testFreeBox(2)) )  funcButton(2); else
+		if ( (vetor[8] == 1)  &&  (testFreeBox(0)) )  funcButton(0); else
+		if ( (vetor[1] == 1)  &&  (countFreeBoxes() > 2) )  funcFill2aJediExceto([3, 5]); else
+		if ( (vetor[3] == 1)  &&  (countFreeBoxes() > 2) )  funcFill2aJediExceto([1, 7]); else
+		if ( (vetor[5] == 1)  &&  (countFreeBoxes() > 2) )  funcFill2aJediExceto([1, 7]); else
+		if ( (vetor[7] == 1)  &&  (countFreeBoxes() > 2) )  funcFill2aJediExceto([3, 5]); else
+		funcFill2aJedi(1);
+	}
+	else {
+		lista_resultados = [];
+		AvaliaProximaJogadaYoda(jogoatual);
+		//document.getElementById('teste2').innerHTML += "Lista de jogos avaliados: <br>"+lista_resultados+"<br><br><br>";
+		
+		var jog = JogadorDaVez(jogoatual);
+		var temp_rodada = counterTurns;
+
+		var m = '';
+		
+		if (pcLevel('6')) m = MelhoresJogadasFiltradas(jogoatual.length, jog);
+		//if () m = MelhoresJogadas???(jogoatual.length, jog);
+		else m = MelhoresJogadas2222(jogoatual.length, jog);
+		
+		//MarcaCasa(novojogo, m);
+		//alert('funcPlayYoda - Retorno de MelhoresJogadas2222: '+ m);
+		if (m == '' || m == undefined) { 
+			//alert("funcPlayYoda (a0) escolheu melhor jogada o espaço vazio '" + m + "'."); 
+			funcFillBoxes(1);
+		}
+		else
+		if (!testFreeBox(Number(m))) { 
+			//alert("funcPlayYoda (a1) escolheu melhor jogada o botão bloqueado '" + m + "'."); 
+			funcFillBoxes(1);
+		}
+		else
+			funcButton(Number(m));
+		
+		//if (temp_rodada == counterTurns) alert("funcPlayYoda (a2) não houve uma jogada e o retorno de m foi '" + m + "'.");
+	}
+}
+
+function funcFill2aJedi(n){
+	var i = 0;
+	var boxnum = 0;
+	var excluir = [2, 4, 6, 8];
+	while ( (i < n) && (countFreeBoxes() > 0) ) {
+		boxnum = funcRandom0to(9);
+		if ( (testFreeBox(boxnum))  &&  (excluir.indexOf(boxnum) < 0)  ) {
+			funcButton(boxnum);
+			i++;
+		}
+	}
+}
+
+function funcFill2aJediExceto(excluir){
+	var i = 0;
+	var boxnum = 0;
+	//var excluir = [2, 4, 6, 8];
+	while ( (i < 1) && (countFreeBoxes() > 0) ) {
+		boxnum = funcRandom0to(9);
+		if ( (testFreeBox(boxnum))  &&  (excluir.indexOf(boxnum) < 0)  ) {
+			funcButton(boxnum);
+			i++;
+		}
+	}
+}
+
+function AvaliaProximaJogadaYoda(jogo){
+	//document.getElementById('teste2').innerHTML += "Inicio do FazProximaJogada: "+jogo+" ... count: "+contador+"<br>";
+	var consulta = "";
+	var flag = Math.pow(-1, (jogo.length) );
+
+	if (JogoAcabou(jogo)) {
+		lista_resultados.push(jogo);
+		//consulta = ConsultaResultado(jogo);
+		//document.getElementById('teste').innerHTML += "Fim do jogo: "+jogo+" ... resultado: "+consulta+"<br>";
+	}
+	else {
+		var i = 0;
+		while (i < 9) {
+			if (( jogo.indexOf(i) < 0 ) && ( AvaliaCasa( jogo, i,  flag, 3, 1 ) ) )	{ //resultado.ganha.push(i);
+				AvaliaProximaJogadaYoda(jogo+i);
+				consulta = "sai";
+				break;
+			}
+			i++;
+		}
+		if (consulta != "sai") {
+			i = 0;
+			while (i < 9) {
+				if (( jogo.indexOf(i) < 0 ) && ( AvaliaCasa( jogo, i, -flag, 3, 1 ) ) )	{ //resultado.defende.push(i);
+					AvaliaProximaJogadaYoda(jogo+i);
+					consulta = "sai";
+					break;
+				}
+				i++;
+			}
+		}
+		if (consulta != "sai") {
+			i = 0;
+			while (i < 9) {
+				if (( jogo.indexOf(i) < 0 ) && ( AvaliaCasa( jogo, i,  flag, 2, 2 ) ) )	{ //resultado.ataca.push(i);
+					AvaliaProximaJogadaYoda(jogo+i);
+					consulta = "sai";
+					break;
+				}
+				i++;
+			}
+		}
+		if (consulta != "sai") {
+			i = 0;
+			while (i < 9) {
+				if ( jogo.indexOf(i) < 0 ) AvaliaProximaJogadaYoda(jogo+i);
+				i++;
+			}
+		}
+	}
+}
+
+function AvaliaCasa(jogo, num, flag, score, minimo) {
+	var vetor = CarregaJogadas(jogo);
+	vetor[num] = flag;
+	var teste = 0;
+	if (flag*(vetor[0]+vetor[1]+vetor[2]) == score) teste++;
+	if (flag*(vetor[3]+vetor[4]+vetor[5]) == score) teste++;
+	if (flag*(vetor[6]+vetor[7]+vetor[8]) == score) teste++;
+	if (flag*(vetor[0]+vetor[3]+vetor[6]) == score) teste++;
+	if (flag*(vetor[1]+vetor[4]+vetor[7]) == score) teste++;
+	if (flag*(vetor[2]+vetor[5]+vetor[8]) == score) teste++;
+	if (flag*(vetor[0]+vetor[4]+vetor[8]) == score) teste++;
+	if (flag*(vetor[2]+vetor[4]+vetor[6]) == score) teste++;
+	//alert("AvaliaCasa - vetor: " + vetor + ";   num: " + num + "; - flag: " + flag + "; - teste: " + teste);
+	return (teste >= minimo);
+}
+
+// Recebe jogo no formato "012345678"
+function CarregaJogadas(jogo){
+	var vetor = [0,0,0, 0,0,0, 0,0,0];
+	var i = 0;
+	while (i < jogo.length) {
+		vetor[jogo[i]] = Math.pow(-1, i);
+		i++;
+	}
+	return vetor;
+}
+
+function JogadorDaVez(jogo){
+	var flag = Math.pow(-1, (jogo.length) );
+	if (flag == 1) return "X";
+	else return "O";
+}
+
+function JogoAcabou(jogo){
+	return (  jogo.length == 9  ||  AvaliaCasa(jogo, -1,  1, 3, 1)  ||  AvaliaCasa(jogo, -1, -1, 3, 1)  );
+}
+
+function ConsultaResultado(jogo){
+	if (AvaliaCasa( jogo, -1,  1, 3, 1 )) return "X ganhou!";
+	//if (AvaliaCasa( jogo, -1,  1, 3, 1 )) return flagXO + " ganhou!";
+	else
+	if (AvaliaCasa( jogo, -1, -1, 3, 1 )) return "O ganhou!";
+	//if (AvaliaCasa( jogo, -1, -1, 3, 1 )) return adversario() + " ganhou!";
+	else
+	if (jogo.length < 9) return "O jogo ainda não acabou!";
+	else return "Deu velha!";
+}
+
+function MelhoresJogadas2222(rodada, jogador){
+	var lista_winX = [];
+	var lista_winO = [];
+	var lista_gTie = [];
+	
+	var temp = ""
+
+	var i = 0;
+	while (i < lista_resultados.length) {
+		temp = ConsultaResultado(lista_resultados[i]);
+		if (temp == "Deu velha!") lista_gTie.push(lista_resultados[i][rodada]);
+		if (temp == "X ganhou!" ) lista_winX.push(lista_resultados[i][rodada]);
+		if (temp == "O ganhou!" ) lista_winO.push(lista_resultados[i][rodada]);
+		i++;
+	}
+	//document.getElementById('teste').innerHTML += "Melhores2 rodada ("+rodada+jogador+")<br>- winX: "+lista_winX+" <br>- winO: "+lista_winO+" <br>- gTie: "+lista_gTie+"<br>";
+	var filtro_winX = [];
+	var filtro_winO = [];
+	var filtro_gTie = [];
+	
+	var melhor = '';
+
+	var k = 0;
+
+	if (jogador == 'X'){
+		// Se as outras listas contem o item da lista_winO, retira esse item das outras listas
+		if (lista_winO.length > 0) {
+			i = 0;
+			while (i < lista_winO.length) {
+				k = 0;
+				while (k < lista_winX.length) {
+					if (lista_winX[k] != lista_winO[i]) filtro_winX.push(lista_winX[k]);
+					k++;
+				}
+
+				k = 0;
+				while (k < lista_gTie.length) {
+					if (lista_gTie[k] != lista_winO[i]) filtro_gTie.push(lista_gTie[k]);
+					k++;
+				}
+				
+				i++;
+				lista_winX = filtro_winX;
+				lista_gTie = filtro_gTie;
+				filtro_winX = [];
+				filtro_gTie = [];
+			}
+		}
+
+		//if (lista_gTie.length) melhor = lista_gTie[ funcRandom0to(lista_gTie.length) ];
+		//if (lista_winX.length) melhor = lista_winX[ funcRandom0to(lista_winX.length) ];
+
+		if (lista_winX.length) melhor = ChooseBestFreeBox(lista_winX, []);
+		
+		if (melhor == '' && lista_gTie.length) melhor = ChooseBestFreeBox(lista_gTie, []);
+		
+		//melhor = ChooseBestFreeBox(lista_winO, []);
+		
+		//alert("MelhoresJogadas2222 (aX)\n - Lista X win: " + lista_winX + "\n - Lista O win: " + lista_winO + "\n - Lista deu velha: " + lista_gTie + "\n - Melhor escolhido: " + melhor); 
+		
+		//if (melhor == '') melhor = lista_winO[ funcRandom0to(lista_winO.length) ];
+		//if (melhor == '') melhor = ChooseBestFreeBox(lista_winO, []);
+		if (melhor  == '') melhor = AvaliaCasasLivres(jogoatual, 1);
+	}
+
+	if (jogador == 'O'){
+		// Se as outras listas contem o item da lista_winX, retira esse item das outras listas
+		if (lista_winX.length > 0) {
+			i = 0;
+			while (i < lista_winX.length) {
+				k = 0;
+				while (k < lista_winO.length) {
+					if (lista_winO[k] != lista_winX[i]) filtro_winO.push(lista_winO[k]);
+					k++;
+				}
+
+				k = 0;
+				while (k < lista_gTie.length) {
+					if (lista_gTie[k] != lista_winX[i]) filtro_gTie.push(lista_gTie[k]);
+					k++;
+				}
+				
+				i++;
+				lista_winO = filtro_winO;
+				lista_gTie = filtro_gTie;
+				filtro_winO = [];
+				filtro_gTie = [];
+			}
+		}
+
+		//alert("MelhoresJogadas2222 (aO)\n - Lista X win: " + lista_winX + "\n - Lista O win: " + lista_winO + "\n - Lista deu velha: " + lista_gTie); 
+
+		//if (lista_gTie.length) melhor = lista_gTie[ funcRandom0to(lista_gTie.length) ];
+		//if (lista_winO.length) melhor = lista_winO[ funcRandom0to(lista_winO.length) ];
+		//	melhor = ChooseBestFreeBox(lista_winO, lista_gTie);
+
+		if (lista_winO.length) melhor = ChooseBestFreeBox(lista_winO, []);
+		
+		if (melhor == '' && lista_gTie.length) melhor = ChooseBestFreeBox(lista_gTie, []);
+		
+		//melhor = ChooseBestFreeBox(lista_winX, []);
+
+		//alert("MelhoresJogadas2222 (aO)\n - Lista X win: " + lista_winX + "\n - Lista O win: " + lista_winO + "\n - Lista deu velha: " + lista_gTie + "\n - Melhor escolhido: " + melhor); 
+
+		//if (melhor == '') melhor = lista_winX[ funcRandom0to(lista_winX.length) ];
+		//if (melhor == '') melhor = ChooseBestFreeBox(lista_winX, []);
+		if (melhor  == '') melhor = AvaliaCasasLivres(jogoatual, -1);
+	}
+	
+	//alert("MelhoresJogadas2222 (a1)\n - Lista X win: " + lista_winX + "\n - Lista O win: " + lista_winO + "\n - Lista deu velha: " + lista_gTie + "\n - Melhor escolhido: " + melhor); 
+	
+	
+	//alert("MelhoresJogadas2222 (a2)\n - Jogo atual: " + jogoatual + "\n - Flag: " + flagXO + "\n - Melhor escolhido: " + melhor); 
+	
+	return melhor;
+}
+
+
+/// fazer ajustes aqui para modos de escolha diferentes e também na chamada da função (diferenciar Yoda e Darth)
+function ChooseBestFreeBox(vet1, vet2) {
+	var best = '';
+	//var vetor = [];
+	//if (vet2.length) vetor = vet1.concat(vet2);
+	var vetor = vet1.concat(vet2);
+	for (let i = 0; i < vetor.length; i++) {
+		if (testFreeBox(Number(vetor[i]))) best += Number(vetor[i]);
+	}
+	if (best.length) return best[ funcRandom0to(best.length) ];
+	else return '';
+}
+
+
+function AvaliaCasasLivres(jogo, flag) {
+	//if (AvaliaCasa( jogo, -1,  1, 3, 1 )) return "X ganhou!";
+	//if (AvaliaCasa( jogo, -1, -1, 3, 1 )) return "O ganhou!";
+	var best = '';
+	for (let i = 0; i < 9; i++) {
+		if (testFreeBox(i)) {
+			if (AvaliaCasa(jogo, i, -flag, 3, 1)) best  = ''+i;
+			else
+			if (AvaliaCasa(jogo, i,  flag, 2, 2)) best += i;
+		}
+	}
+
+	if (best == '') {
+	for (let i = 0; i < 9; i++) {
+		if (testFreeBox(i)) {
+			if (AvaliaCasa(jogo, i, -flag, 2, 2)) best = ''+i;
+			else
+			if (AvaliaCasa(jogo, i,  flag, 2, 1)) best += i;
+			//else
+			//if (AvaliaCasa(jogo, i, -flag, 2, 1)) best += i;
+		}
+	}
+	}
+
+	//return best[ funcRandom0to(best.length) ];
+	if (best.length) return best[0];
+	else return '';
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function MelhoresJogadasFiltradas(rodada, jogador){
+	var lista_winX = [];
+	var lista_winO = [];
+	var lista_gTie = [];
+	
+	var temp = ""
+
+	var i = 0;
+	while (i < lista_resultados.length) {
+		temp = ConsultaResultado(lista_resultados[i]);
+		if (temp == "Deu velha!") lista_gTie.push(lista_resultados[i][rodada]);
+		if (temp == "X ganhou!" ) lista_winX.push(lista_resultados[i][rodada]);
+		if (temp == "O ganhou!" ) lista_winO.push(lista_resultados[i][rodada]);
+		i++;
+	}
+	var filtro_winX = [];
+	var filtro_winO = [];
+	var filtro_gTie = [];
+	
+	var melhor = '';
+
+	var k = 0;
+
+	if (jogador == 'X'){
+		// Se as outras listas contem o item da lista_winO, retira esse item das outras listas
+		if (lista_winO.length > 0) {
+			i = 0;
+			while (i < lista_winO.length) {
+				k = 0;
+				while (k < lista_winX.length) {
+					if ( (lista_winX[k] != lista_winO[i])  &&  (filtro_winX.indexOf(lista_winX[k]) < 0) ) filtro_winX.push(lista_winX[k]);
+					k++;
+				}
+
+				k = 0;
+				while (k < lista_gTie.length) {
+					if ( (lista_gTie[k] != lista_winO[i])  &&  (filtro_gTie.indexOf(lista_gTie[k]) < 0) ) filtro_gTie.push(lista_gTie[k]);
+					//if (lista_gTie[k] != lista_winO[i]) filtro_gTie.push(lista_gTie[k]);
+					k++;
+				}
+				
+				i++;
+				lista_winX = filtro_winX;
+				lista_gTie = filtro_gTie;
+				filtro_winX = [];
+				filtro_gTie = [];
+			}
+		}
+
+		if (lista_winX.length) melhor = ChooseBestFreeBox(lista_winX, []);
+		
+		if (melhor == '' && lista_gTie.length) melhor = ChooseBestFreeBox(lista_gTie, []);
+		
+		if (melhor  == '') melhor = AvaliaCasasLivres(jogoatual, 1);
+	}
+
+	if (jogador == 'O'){
+		// Se as outras listas contem o item da lista_winX, retira esse item das outras listas
+		if (lista_winX.length > 0) {
+			i = 0;
+			while (i < lista_winX.length) {
+				k = 0;
+				while (k < lista_winO.length) {
+					if (lista_winO[k] != lista_winX[i]) filtro_winO.push(lista_winO[k]);
+					k++;
+				}
+
+				k = 0;
+				while (k < lista_gTie.length) {
+					if (lista_gTie[k] != lista_winX[i]) filtro_gTie.push(lista_gTie[k]);
+					k++;
+				}
+				
+				i++;
+				lista_winO = filtro_winO;
+				lista_gTie = filtro_gTie;
+				filtro_winO = [];
+				filtro_gTie = [];
+			}
+		}
+
+		if (lista_winO.length) melhor = ChooseBestFreeBox(lista_winO, []);
+		
+		if (melhor == '' && lista_gTie.length) melhor = ChooseBestFreeBox(lista_gTie, []);
+		
+		if (melhor  == '') melhor = AvaliaCasasLivres(jogoatual, -1);
+	}
+	
+	alert("MelhoresJogadasFiltradas\n - Lista X win: " + lista_winX + "\n - Lista O win: " + lista_winO + "\n - Lista deu velha: " + lista_gTie + "\n - Melhor escolhido: " + melhor);
+	
+	return melhor;
+}
+
+
+
+
+</script>
+
+</html>

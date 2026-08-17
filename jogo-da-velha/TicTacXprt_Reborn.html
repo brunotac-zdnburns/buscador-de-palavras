@@ -1,0 +1,25 @@
+<!DOCTYPE html><html><head><meta charset='utf-8'><title>TicTacXprt Reborn</title><style>body{font-family:Arial;text-align:center}#board{display:grid;grid-template-columns:repeat(3,80px);gap:5px;justify-content:center;margin:20px}button.cell{width:80px;height:80px;font-size:32px}.controls{margin:10px}input{width:40px}</style></head><body><h2>TicTacXprt Reborn</h2><div class='controls'>Level <select id='level'><option>Easy</option><option>Piece of Cake</option><option>Expert</option><option>Daniel San</option><option>Miyagi</option><option>Ninja</option><option>Jedi</option><option>Yoda</option><option>Darth Vader</option></select> PC as <select id='pc'><option>X</option><option selected>O</option></select></div><div class='controls'>Fill <input id='fill' value='0'> Block <input id='block' value='0'> Rounds <input id='rounds' value='0'><button onclick='newChallenge()'>Challenge</button><button onclick='resetGame()'>New</button></div><div id='status'></div><div id='board'></div><script>
+let board=Array(9).fill(''),turn='X',history=[],blocked={},releaseRound=0;const b=document.getElementById('board');
+for(let i=0;i<9;i++){let bt=document.createElement('button');bt.className='cell';bt.onclick=()=>play(i);bt.id='c'+i;b.appendChild(bt)}
+function render(){for(let i=0;i<9;i++){let e=document.getElementById('c'+i);e.textContent=board[i];e.disabled=board[i]||blocked[i];}status.textContent='Turno: '+turn;let w=winner(board);if(w){status.textContent=w=='T'?'Empate':w+' venceu';disableAll();}}
+function disableAll(){for(let i=0;i<9;i++)document.getElementById('c'+i).disabled=true}
+function winner(s){const l=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];for(const a of l){if(s[a[0]]&&s[a[0]]==s[a[1]]&&s[a[1]]==s[a[2]])return s[a[0]]}return s.every(x=>x)?'T':null}
+function play(i){if(board[i]||blocked[i]||winner(board))return;board[i]=turn;history.push(i);if(history.length>=releaseRound){blocked={}};turn=turn=='X'?'O':'X';render();setTimeout(pcMove,50)}
+function freeMoves(){return [...Array(9).keys()].filter(i=>!board[i]&&!blocked[i])}
+function pcMove(){if(winner(board))return; if(turn!=document.getElementById('pc').value)return; let m=chooseMove(); if(m!=null) play(m)}
+function chooseMove(){let lvl=level.value,m=freeMoves(); if(!m.length)return null; if(lvl=='Easy') return rnd(m);
+ let me=turn,op=me=='X'?'O':'X'; const winMove=p=>m.find(i=>{let b2=board.slice();b2[i]=p;return winner(b2)==p});
+ if(lvl!='Piece of Cake'&&winMove(me)!=null)return winMove(me); if(['Expert','Daniel San','Miyagi','Ninja','Jedi'].includes(lvl)&&winMove(op)!=null)return winMove(op);
+ if(['Daniel San','Miyagi','Ninja','Jedi'].includes(lvl)){let f=fork(me);if(f!=null)return f}
+ if(['Miyagi','Ninja','Jedi'].includes(lvl)){let f=fork(op);if(f!=null)return f}
+ if(['Ninja'].includes(lvl)){if(m.includes(4))return 4}
+ if(['Jedi','Yoda','Darth Vader'].includes(lvl)){return minimaxChoice(lvl)}
+ return rnd(m)}
+ function fork(p){for(let i of freeMoves()){let count=0,b2=board.slice();b2[i]=p; for(let j of freeMoves()){if(j==i)continue; let b3=b2.slice(); b3[j]=p; if(winner(b3)==p)count++;} if(count>=2)return i;} return null}
+ function rnd(a){return a[Math.floor(Math.random()*a.length)]}
+ function minimaxChoice(mode){let me=turn,best=-99,move=null; for(let i of freeMoves()){let b2=board.slice();b2[i]=me; let s=minimax(b2,false,me); if(mode=='Darth Vader'&& s==0) s=-0.1; if(s>best){best=s;move=i}} return move}
+ function minimax(s,maximizing,me){let w=winner(s); let op=me=='X'?'O':'X'; if(w==me)return 1; if(w==op)return -1; if(w=='T')return 0; let vals=[]; for(let i=0;i<9;i++)if(!s[i]){let b2=s.slice(); b2[i]=maximizing?me:op; vals.push(minimax(b2,!maximizing,me));} return maximizing?Math.max(...vals):Math.min(...vals)}
+ function resetGame(){board=Array(9).fill('');turn='X';history=[];blocked={};releaseRound=0;render();pcMove()}
+ function newChallenge(){resetGame(); let fill=+document.getElementById('fill').value||0,blk=+document.getElementById('block').value||0,rd=+document.getElementById('rounds').value||0; releaseRound=fill+rd; for(let k=0;k<fill && !winner(board);k++){let mv=rnd(freeMoves()); board[mv]=turn; turn=turn=='X'?'O':'X'; history.push(mv);} let fm=freeMoves(); for(let k=0;k<blk && fm.length;k++){let idx=rnd(fm); blocked[idx]=true; fm.splice(fm.indexOf(idx),1);} render(); pcMove();}
+resetGame();
+</script></body></html>
