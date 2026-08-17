@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logo Turtle Studio Pro - V2</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { background-color: #121214; color: #e1e1e6; display: flex; flex-direction: column; min-height: 100vh; padding: 12px; }
+    header { text-align: center; margin-bottom: 12px; }
+    header h1 { font-size: 1.4rem; color: #00875f; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    
+    .main-container { display: flex; flex-direction: column; gap: 12px; max-width: 1000px; margin: 0 auto; width: 100%; flex: 1; }
+    @media (min-width: 800px) { .main-container { display: grid; grid-template-columns: 1fr 340px; } }
+
+    .canvas-card { background: #202024; border: 1px solid #29292e; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; align-items: center; position: relative; }
+    
+    /* Container do Canvas Duplo */
+    .canvas-wrapper { position: relative; width: 100%; max-width: 600px; height: 400px; border-radius: 4px; overflow: hidden; background: #ffffff; }
+    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; touch-action: none; }
+    #turtleCanvas { pointer-events: none; } /* Deixa os cliques passarem para a camada de baixo se precisar */
+
+    /* Joystick */
+    .joystick { display: grid; grid-template-areas: ". up ." "left down right"; gap: 6px; margin-top: 12px; }
+    .joy-btn { background: #323238; color: #00f0ff; border: none; border-radius: 8px; padding: 12px; font-weight: bold; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .joy-btn:active { background: #00875f; }
+    .joy-up { grid-area: up; } .joy-down { grid-area: down; } .joy-left { grid-area: left; } .joy-right { grid-area: right; }
+
+    .controls-card { background: #202024; border: 1px solid #29292e; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px; height: fit-content; }
+    
+    label { font-size: 0.85rem; font-weight: bold; color: #a8a8b3; display: flex; justify-content: space-between; }
+    textarea { width: 100%; height: 90px; background: #121214; border: 1px solid #323238; border-radius: 6px; color: #00f0ff; font-family: "Courier New", monospace; font-size: 0.95rem; padding: 8px; resize: vertical; }
+    textarea:focus { outline: 1px solid #00875f; }
+    
+    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { flex: 1; min-width: 80px; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 0.85rem; }
+    
+    .btn-run { background: #00875f; color: #fff; } .btn-run:hover { background: #00b37e; }
+    .btn-stop { background: #f75a68; color: #fff; } .btn-stop:hover { background: #ff7682; }
+    .btn-secondary { background: #29292e; color: #e1e1e6; } .btn-secondary:hover { background: #323238; }
+
+    .toolbar { display: flex; gap: 10px; align-items: center; background: #121214; padding: 8px; border-radius: 6px; font-size: 0.8rem; flex-wrap: wrap; }
+    .toolbar input[type="checkbox"] { cursor: pointer; }
+    .toolbar input[type="range"] { width: 80px; }
+
+    .saved-scripts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+    .btn-macro { background: #4b0082; color: #fff; border: none; padding: 6px 12px; border-radius: 12px; font-size: 0.8rem; cursor: pointer; }
+    .btn-macro:hover { background: #6a0dad; }
+
+    .console { background: #121214; border: 1px solid #29292e; border-radius: 6px; padding: 8px; font-family: monospace; font-size: 0.8rem; min-height: 45px; max-height: 80px; overflow-y: auto; color: #8d8d99; }
+    .console.error { color: #f75a68; } .console.success { color: #00b37e; }
+  </style>
+</head>
+<body>
+
+  <header><h1>🐢 Logo Turtle Studio Pro</h1></header>
+
+  <div class="main-container">
+    <div class="canvas-card">
+      <div class="toolbar" style="width: 100%; margin-bottom: 10px;">
+        <label><input type="checkbox" id="chkAnimacao" checked> Animar</label>
+        <label>Velocidade: <input type="range" id="rangeVelocidade" min="0" max="100" value="70"></label>
+        <label><input type="checkbox" id="chkTartaruga" checked onchange="desenharTartaruga()"> Mostrar Tartaruga</label>
+        <button class="btn-secondary" style="padding: 4px 8px; flex: unset;" onclick="exportarPNG()">📥 Baixar PNG</button>
+      </div>
+      
+      <div class="canvas-wrapper">
+        <canvas id="drawCanvas" width="600" height="400"></canvas>
+        <canvas id="turtleCanvas" width="600" height="400"></canvas>
+      </div>
+
+      <div class="joystick">
+        <button class="joy-btn joy-up" onclick="executarDireto('pf 20')">⬆️</button>
+        <button class="joy-btn joy-left" onclick="executarDireto('pe 15')">⬅️</button>
+        <button class="joy-btn joy-down" onclick="executarDireto('pt 20')">⬇️</button>
+        <button class="joy-btn joy-right" onclick="executarDireto('pd 15')">➡️</button>
+      </div>
+    </div>
+
+    <div class="controls-card">
+      <label for="commandInput">
+        Comandos:
+        <span style="font-weight: normal; font-size: 0.75rem; color: #8d8d99;">(Ex: aprenda flor [ repita 8 [ pf 50 pt 50 pd 45 ] ])</span>
+      </label>
+      <textarea id="commandInput" placeholder="Digite seus comandos aqui..." spellcheck="false"></textarea>
+
+      <div class="btn-group">
+        <button class="btn-run" id="btnExecutar" onclick="iniciarExecucao()">▶ Executar</button>
+        <button class="btn-stop" id="btnParar" onclick="pararExecucao()" disabled>🛑 Parar</button>
+        <button class="btn-secondary" onclick="resetarTudo()">🗑 Limpar</button>
+      </div>
+
+      <label>Meus Botões (Salvar script atual):</label>
+      <div style="display: flex; gap: 5px;">
+        <input type="text" id="macroName" placeholder="Nome do botão..." style="flex:1; padding: 6px; border-radius: 4px; border: none; background: #121214; color: #fff;">
+        <button class="btn-secondary" style="flex: unset;" onclick="salvarMacro()">💾 Salvar</button>
+      </div>
+      <div class="saved-scripts" id="macroContainer">
+        </div>
+
+      <label>Status / Console:</label>
+      <div id="consoleLog" class="console">Pronto para criar!</div>
+    </div>
+  </div>
+
+  <script>
+    // Configuração dos Canvas (Draw = Fundo e Linhas | Turtle = Apenas o cursor)
+    const drawCanvas = document.getElementById('drawCanvas');
+    const ctxDraw = drawCanvas.getContext('2d');
+    const turtleCanvas = document.getElementById('turtleCanvas');
+    const ctxTurtle = turtleCanvas.getContext('2d');
+    const consoleLog = document.getElementById('consoleLog');
+
+    // Estado da Tartaruga
+    let x, y, angulo, penDown, corAtual, espessuraAtual;
+    let corFundo = '#ffffff';
+    
+    // Estado do Motor
+    let executando = false;
+    let interromper = false;
+    let dicionarioComandos = {}; // Salva funções do comando 'aprenda'
+    let macros = {}; // Salva os botões personalizados da interface
+    
+    // Paleta de Cores (prox-cor)
+    const paletaArcoIris = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3', '#ff1493', '#00ffff'];
+    let indicePaleta = 0;
+
+    function init() {
+      resetarTudo();
+      carregarExemplosIniciais();
+    }
+
+    function logMsg(msg, isError = false) {
+      consoleLog.innerText = msg;
+      consoleLog.className = 'console ' + (isError ? 'error' : 'success');
+    }
+
+    function resetarTudo() {
+      pararExecucao();
+      x = drawCanvas.width / 2;
+      y = drawCanvas.height / 2;
+      angulo = -90; // Pra cima
+      penDown = true;
+      corAtual = '#000000';
+      espessuraAtual = 2;
+      corFundo = '#ffffff';
+      indicePaleta = 0;
+
+      // Limpa a camada de desenho e preenche com o fundo
+      ctxDraw.fillStyle = corFundo;
+      ctxDraw.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+      
+      desenharTartaruga();
+      logMsg("Tela limpa. Tartaruga no centro.");
+    }
+
+    // Desenha o cursor na camada superior transparente
+    function desenharTartaruga() {
+      ctxTurtle.clearRect(0, 0, turtleCanvas.width, turtleCanvas.height);
+      
+      if (!document.getElementById('chkTartaruga').checked) return; // Ocultar tartaruga
+
+      ctxTurtle.save();
+      ctxTurtle.translate(x, y);
+      ctxTurtle.rotate((angulo + 90) * Math.PI / 180);
+
+      ctxTurtle.beginPath();
+      ctxTurtle.moveTo(0, -12);
+      ctxTurtle.lineTo(8, 8);
+      ctxTurtle.lineTo(-8, 8);
+      ctxTurtle.closePath();
+
+      ctxTurtle.fillStyle = '#00b37e';
+      ctxTurtle.fill();
+      ctxTurtle.strokeStyle = '#121214';
+      ctxTurtle.lineWidth = 1.5;
+      ctxTurtle.stroke();
+
+      ctxTurtle.restore();
+    }
+
+    // Função de Espera (Delay)
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function tokenizar(texto) {
+      const limpo = texto.replace(/\[/g, ' [ ').replace(/\]/g, ' ] ').trim();
+      if (!limpo) return [];
+      return limpo.split(/\s+/);
+    }
+
+    // Extrai o bloco de código [ ... ]
+    function extrairBloco(tokens, startIndex) {
+      let i = startIndex;
+      if (tokens[i] !== '[') throw new Error("Faltou '[' no bloco.");
+      let nivel = 1;
+      let i_inicio = i + 1;
+      while (i < tokens.length - 1 && nivel > 0) {
+        i++;
+        if (tokens[i] === '[') nivel++;
+        if (tokens[i] === ']') nivel--;
+      }
+      if (nivel !== 0) throw new Error("Faltou fechar ']' no bloco.");
+      return { bloco: tokens.slice(i_inicio, i), proximoIndex: i };
+    }
+
+    // ----- Motor Assíncrono Principal -----
+    async function iniciarExecucao() {
+      if (executando) return;
+      const texto = document.getElementById('commandInput').value;
+      if (!texto.trim()) return;
+
+      executando = true;
+      interromper = false;
+      document.getElementById('btnExecutar').disabled = true;
+      document.getElementById('btnParar').disabled = false;
+      logMsg("Executando...");
+
+      try {
+        const tokens = tokenizar(texto);
+        await processarTokens(tokens);
+        if (!interromper) logMsg("Comandos executados com sucesso!");
+      } catch (err) {
+        logMsg("Erro: " + err.message, true);
+      }
+
+      finalizarExecucao();
+    }
+
+    // Para uso no Joystick ou ao clicar em botões salvos
+    async function executarDireto(texto) {
+      if (executando) return;
+      executando = true;
+      interromper = false;
+      document.getElementById('btnExecutar').disabled = true;
+      document.getElementById('btnParar').disabled = false;
+      
+      try {
+        await processarTokens(tokenizar(texto));
+      } catch (err) {
+        logMsg("Erro: " + err.message, true);
+      }
+      finalizarExecucao();
+    }
+
+    function pararExecucao() {
+      interromper = true;
+      logMsg("Execução interrompida pelo usuário.", true);
+    }
+
+    function finalizarExecucao() {
+      executando = false;
+      interromper = false;
+      document.getElementById('btnExecutar').disabled = false;
+      document.getElementById('btnParar').disabled = true;
+    }
+
+    async function processarTokens(tokens) {
+      let i = 0;
+      const animar = document.getElementById('chkAnimacao').checked;
+      
+      while (i < tokens.length) {
+        if (interromper) break; // Trava de segurança
+
+        let cmd = tokens[i].toLowerCase();
+
+        // DELAY DA ANIMAÇÃO (Inverso do valor do range)
+        if (animar && ['pf','pt','pd','pe','pos'].includes(cmd)) {
+           let valRange = document.getElementById('rangeVelocidade').value;
+           let ms = 100 - valRange; // Range de 0 a 100 ms
+           if (ms > 0) await sleep(ms);
+        }
+
+        if (cmd === 'pf' || cmd === 'para-frente' || cmd === 'fd') {
+          moverTartaruga(parseFloat(tokens[++i]));
+        } 
+        else if (cmd === 'pt' || cmd === 'para-tras' || cmd === 'bk') {
+          moverTartaruga(-parseFloat(tokens[++i]));
+        } 
+        else if (cmd === 'pd' || cmd === 'para-direita' || cmd === 'rt') {
+          angulo += parseFloat(tokens[++i]);
+          desenharTartaruga();
+        } 
+        else if (cmd === 'pe' || cmd === 'para-esquerda' || cmd === 'lt') {
+          angulo -= parseFloat(tokens[++i]);
+          desenharTartaruga();
+        } 
+        else if (cmd === 'mude-xy' || cmd === 'pos') {
+          // Move para posição baseada no centro (0,0)
+          let nx = parseFloat(tokens[++i]);
+          let ny = parseFloat(tokens[++i]);
+          moverPara(drawCanvas.width/2 + nx, drawCanvas.height/2 - ny);
+        }
+        else if (cmd === 'mude-cor' || cmd === 'mudecor') {
+          let cor = tokens[++i];
+          if (cor === 'random' || cor === 'aleatorio') {
+            corAtual = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+          } else {
+            corAtual = cor;
+          }
+        } 
+        else if (cmd === 'prox-cor' || cmd === 'proxcor') {
+          corAtual = paletaArcoIris[indicePaleta % paletaArcoIris.length];
+          indicePaleta++;
+        }
+        else if (cmd === 'mude-fundo' || cmd === 'mudefundo') {
+          corFundo = tokens[++i];
+          ctxDraw.fillStyle = corFundo;
+          ctxDraw.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+        }
+        else if (cmd === 'mude-espessura' || cmd === 'mudeespessura') {
+          espessuraAtual = parseFloat(tokens[++i]);
+        } 
+        else if (cmd === 'ul' || cmd === 'usar-lapis') {
+          penDown = true;
+        } 
+        else if (cmd === 'ub' || cmd === 'usar-borracha') {
+          penDown = false;
+        } 
+        else if (cmd === 'ot' || cmd === 'oculte-tartaruga') {
+          document.getElementById('chkTartaruga').checked = false;
+          desenharTartaruga();
+        }
+        else if (cmd === 'mt' || cmd === 'mostre-tartaruga') {
+          document.getElementById('chkTartaruga').checked = true;
+          desenharTartaruga();
+        }
+        else if (cmd === 'limpar' || cmd === 'lc') {
+          ctxDraw.fillStyle = corFundo;
+          ctxDraw.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+          x = drawCanvas.width / 2; y = drawCanvas.height / 2; angulo = -90;
+          desenharTartaruga();
+        } 
+        else if (cmd === 'aprenda') {
+          let nomeFunc = tokens[++i].toLowerCase();
+          let { bloco, proximoIndex } = extrairBloco(tokens, ++i);
+          dicionarioComandos[nomeFunc] = bloco;
+          i = proximoIndex;
+          logMsg(`Aprendeu o comando: ${nomeFunc}`);
+        }
+        else if (cmd === 'repita') {
+          let vezes = parseInt(tokens[++i]);
+          let { bloco, proximoIndex } = extrairBloco(tokens, ++i);
+          
+          for (let r = 0; r < vezes; r++) {
+            if (interromper) break;
+            await processarTokens(bloco); // Recursão assíncrona
+          }
+          i = proximoIndex;
+        } 
+        else if (dicionarioComandos[cmd]) {
+          // Executa uma função previamente aprendida
+          await processarTokens(dicionarioComandos[cmd]);
+        }
+        else if (cmd !== '') {
+          throw new Error(`Comando desconhecido: "${cmd}"`);
+        }
+
+        i++;
+      }
+    }
+
+    function moverPara(alvoX, alvoY) {
+      if (penDown) {
+        ctxDraw.beginPath();
+        ctxDraw.moveTo(x, y);
+        ctxDraw.lineTo(alvoX, alvoY);
+        ctxDraw.strokeStyle = corAtual;
+        ctxDraw.lineWidth = espessuraAtual;
+        ctxDraw.lineCap = 'round';
+        ctxDraw.stroke();
+      }
+      x = alvoX;
+      y = alvoY;
+      desenharTartaruga();
+    }
+
+    function moverTartaruga(distancia) {
+      const rad = angulo * Math.PI / 180;
+      const novoX = x + distancia * Math.cos(rad);
+      const novoY = y + distancia * Math.sin(rad);
+      moverPara(novoX, novoY);
+    }
+
+    // Funcionalidades de Interface Extra
+    function exportarPNG() {
+      // Cria um canvas temporário pra juntar o fundo, o desenho e (se visivel) a tartaruga
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = drawCanvas.width;
+      tempCanvas.height = drawCanvas.height;
+      const tCtx = tempCanvas.getContext('2d');
+      
+      tCtx.drawImage(drawCanvas, 0, 0);
+      if (document.getElementById('chkTartaruga').checked) {
+        tCtx.drawImage(turtleCanvas, 0, 0);
+      }
+
+      const link = document.createElement('a');
+      link.download = 'meu_desenho_logo.png';
+      link.href = tempCanvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function salvarMacro() {
+      const nome = document.getElementById('macroName').value.trim();
+      const codigo = document.getElementById('commandInput').value.trim();
+      if (!nome || !codigo) return alert("Preencha o nome e digite um comando antes de salvar!");
+
+      macros[nome] = codigo;
+      atualizarBotoesMacro();
+      document.getElementById('macroName').value = '';
+    }
+
+    function atualizarBotoesMacro() {
+      const container = document.getElementById('macroContainer');
+      container.innerHTML = '';
+      for (const nome in macros) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-macro';
+        btn.innerText = nome;
+        btn.onclick = () => {
+          document.getElementById('commandInput').value = macros[nome];
+          executarDireto(macros[nome]);
+        };
+        container.appendChild(btn);
+      }
+    }
+
+    function carregarExemplosIniciais() {
+      // Salva botões de exemplo para o usuário
+      macros["Arco-Íris"] = "mude-espessura 3\nrepita 36 [\n  prox-cor\n  pf 60 pt 60 pd 10\n]";
+      macros["Espiral Caótica"] = "mude-cor random\nrepita 50 [\n  pf 50\n  pd 123\n  mude-cor random\n]";
+      macros["Ensinar Estrela"] = "aprenda estrela [\n  repita 5 [\n    pf 100 pd 144\n  ]\n]";
+      atualizarBotoesMacro();
+    }
+
+    // Boot
+    window.onload = init;
+  </script>
+</body>
+</html>
