@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tic Tac Toe Xpert (Reborn)</title>
+  <title>Tic Tac Toe Xpert</title>
   <style>
+    /* CSS Fiel às Suas Versões Originais */
     body {
       font-family: Verdana, Geneva, Tahoma, sans-serif;
       text-align: center;
-      background-color: #f4f7f6;
+      background-color: #ffffff;
       color: #333;
       margin: 20px;
     }
@@ -16,60 +17,486 @@
     h1 {
       color: dodgerblue;
       font-size: 25px;
-      margin-bottom: 5px;
+      margin-bottom: 2px;
     }
 
     #title2 {
       color: orangered;
       font-size: 25px;
       margin-top: 0;
+      margin-bottom: 15px;
     }
 
-    /* Container do Tabuleiro 3x3 */
-    .grid-container {
-      display: grid;
-      grid-template-columns: repeat(3, 80px);
-      grid-gap: 5px;
-      justify-content: center;
-      margin: 20px auto;
+    /* Tabuleiro em Tabela com Entradas de Texto/Campos Originais */
+    table.grid-table {
+      margin: 10px auto;
+      border-collapse: collapse;
     }
 
-    /* Estilo idêntico aos botões/campos originais */
-    .cell {
+    table.grid-table td {
+      padding: 3px;
+    }
+
+    /* Estilo Exato dos IDs b0 a b8 do seu CSS */
+    #b0, #b1, #b2, 
+    #b3, #b4, #b5, 
+    #b6, #b7, #b8 {
       width: 80px;
       height: 52px;
+      margin: auto;
       border: 2px solid gray;
       border-radius: 6px;
       font-size: 30px;
       font-weight: bold;
       text-align: center;
-      background-color: #fff;
+      background-color: #ffffff;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
     }
 
-    .cell:hover {
-      background-color: #eef6ff;
+    #b0:hover, #b1:hover, #b2:hover,
+    #b3:hover, #b4:hover, #b5:hover,
+    #b6:hover, #b7:hover, #b8:hover {
+      background-color: #f0f8ff;
     }
 
-    .cell.disabled {
-      cursor: not-allowed;
-    }
-
-    /* Painel de Controles */
-    .controls {
+    /* Painel de Mensagem (#print) */
+    #print {
+      font-family: Verdana, Geneva, Tahoma, sans-serif;
+      color: dodgerblue;
+      font-size: 18px;
+      font-weight: bold;
       margin: 15px auto;
-      max-width: 400px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      align-items: center;
+      min-height: 25px;
     }
 
-    select, button {
+    /* Botões Originais (#but_reset e auxiliares) */
+    .btn-control {
+      box-sizing: border-box;
+      padding: 5px 12px;
+      height: 30px;
+      border: 1px solid dodgerblue;
+      border-radius: 4px;
+      font-family: Verdana, Geneva, Tahoma, sans-serif;
+      background-color: dodgerblue;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 3px;
+    }
+
+    .btn-control:hover {
+      background-color: #0073e6;
+    }
+
+    .btn-secondary {
+      background-color: #6c757d;
+      border-color: #6c757d;
+    }
+
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+
+    /* Painel de Opções */
+    .controls-panel {
+      margin: 15px auto;
+      max-width: 480px;
+      text-align: left;
+      font-size: 13px;
+      background: #f9f9f9;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+
+    .controls-panel div {
+      margin-bottom: 8px;
+    }
+
+    .controls-panel label {
+      font-weight: bold;
+    }
+
+    select, input[type="text"] {
+      font-family: Verdana, Geneva, Tahoma, sans-serif;
+      font-size: 13px;
+      padding: 3px 6px;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+    }
+
+    #in_jogo {
+      width: 110px;
+      text-align: center;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>TIC TAC TOE</h1>
+  <h1 id="title2">XPERT</h1>
+
+  <table class="grid-table">
+    <tr>
+      <td><input type="text" id="b0" onclick="cellClicked(0)" readonly></td>
+      <td><input type="text" id="b1" onclick="cellClicked(1)" readonly></td>
+      <td><input type="text" id="b2" onclick="cellClicked(2)" readonly></td>
+    </tr>
+    <tr>
+      <td><input type="text" id="b3" onclick="cellClicked(3)" readonly></td>
+      <td><input type="text" id="b4" onclick="cellClicked(4)" readonly></td>
+      <td><input type="text" id="b5" onclick="cellClicked(5)" readonly></td>
+    </tr>
+    <tr>
+      <td><input type="text" id="b6" onclick="cellClicked(6)" readonly></td>
+      <td><input type="text" id="b7" onclick="cellClicked(7)" readonly></td>
+      <td><input type="text" id="b8" onclick="cellClicked(8)" readonly></td>
+    </tr>
+  </table>
+
+  <p id="print"></p>
+
+  <div class="controls-panel">
+    <div>
+      <label for="ai-level">Nível da IA: </label>
+      <select id="ai-level" onchange="resetGame()">
+        <option value="easy">Easy (Aleatório)</option>
+        <option value="piece_of_cake">Piece of Cake</option>
+        <option value="expert">Expert</option>
+        <option value="daniel_san">Daniel San</option>
+        <option value="miyagi">Miyagi</option>
+        <option value="ninja">Ninja</option>
+        <option value="jedi">Jedi</option>
+        <option value="yoda" selected>Yoda (Invencível - Defensivo)</option>
+        <option value="darth_vader">Darth Vader (Invencível - Agressivo)</option>
+        <option value="pvp">Humano vs Humano (2 Players)</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="player-symbol">Você joga com: </label>
+      <select id="player-symbol" onchange="resetGame()">
+        <option value="X" selected>X (Inicia o jogo)</option>
+        <option value="O">O (Segundo a jogar)</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="in_jogo">Histórico da Partida (String): </label>
+      <input type="text" id="in_jogo" placeholder="Ex: 08531" onkeydown="if(event.key==='Enter') loadCustomState();">
+      <button type="button" class="btn-control btn-secondary" onclick="loadCustomState()" style="height:26px; padding:2px 8px;">Carregar</button>
+    </div>
+
+    <div style="text-align: center; margin-top: 15px;">
+      <button id="but_reset" class="btn-control" onclick="resetGame()">REINICIAR</button>
+      <button id="but_undo" class="btn-control btn-secondary" onclick="undoMove()">DESFAZER JOGADA</button>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       MOTOR NOVO E EFICIENTE (TicTacToeEngine)
+       ========================================================================== */
+    class TicTacToeEngine {
+      constructor() {
+        this.WINNING_COMBOS = [
+          [0, 1, 2], [3, 4, 5], [6, 7, 8], // Linhas
+          [0, 3, 6], [1, 4, 7], [2, 5, 8], // Colunas
+          [0, 4, 8], [2, 4, 6]             // Diagonais
+        ];
+        this.reset();
+      }
+
+      reset() {
+        this.board = Array(9).fill(null);
+        this.history = [];
+        this.currentPlayer = 'X';
+        this.isGameOver = false;
+        this.winner = null;
+      }
+
+      get gameHistoryStr() {
+        return this.history.join('');
+      }
+
+      getAvailableMoves(board = this.board) {
+        const moves = [];
+        for (let i = 0; i < 9; i++) {
+          if (board[i] === null) moves.push(i);
+        }
+        return moves;
+      }
+
+      makeMove(index) {
+        if (index < 0 || index > 8 || this.board[index] !== null || this.isGameOver) {
+          return false;
+        }
+
+        this.board[index] = this.currentPlayer;
+        this.history.push(index);
+
+        if (this.checkWin(this.board, this.currentPlayer)) {
+          this.isGameOver = true;
+          this.winner = this.currentPlayer;
+        } else if (this.getAvailableMoves().length === 0) {
+          this.isGameOver = true;
+          this.winner = 'TIE';
+        } else {
+          this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+        }
+        return true;
+      }
+
+      undo() {
+        if (this.history.length === 0) return false;
+        this.history.pop();
+        
+        // Reconstrução limpa do estado a partir do histórico restante
+        const currentHistory = [...this.history];
+        this.reset();
+        for (let move of currentHistory) {
+          this.makeMove(move);
+        }
+        return true;
+      }
+
+      loadFromHistoryString(str) {
+        this.reset();
+        const validChars = str.replace(/[^0-8]/g, '');
+        for (let char of validChars) {
+          const idx = parseInt(char, 10);
+          if (this.board[idx] === null && !this.isGameOver) {
+            this.makeMove(idx);
+          } else {
+            break; // Interrompe se houver jogada inválida na string
+          }
+        }
+      }
+
+      checkWin(board, player) {
+        return this.WINNING_COMBOS.some(combo =>
+          combo.every(index => board[index] === player)
+        );
+      }
+
+      /* ==========================================================================
+         ALGORITMO MINIMAX OTIMIZADO (Yoda vs Darth Vader)
+         ========================================================================== */
+      minimax(board, depth, isMaximizing, aiPlayer, humanPlayer) {
+        if (this.checkWin(board, aiPlayer)) return 10 - depth;
+        if (this.checkWin(board, humanPlayer)) return depth - 10;
+        
+        const availableMoves = this.getAvailableMoves(board);
+        if (availableMoves.length === 0) return 0;
+
+        if (isMaximizing) {
+          let bestScore = -Infinity;
+          for (let move of availableMoves) {
+            board[move] = aiPlayer;
+            let score = this.minimax(board, depth + 1, false, aiPlayer, humanPlayer);
+            board[move] = null;
+            bestScore = Math.max(score, bestScore);
+          }
+          return bestScore;
+        } else {
+          let bestScore = Infinity;
+          for (let move of availableMoves) {
+            board[move] = humanPlayer;
+            let score = this.minimax(board, depth + 1, true, aiPlayer, humanPlayer);
+            board[move] = null;
+            bestScore = Math.min(score, bestScore);
+          }
+          return bestScore;
+        }
+      }
+
+      getBestMove(aiPlayer, personality = 'yoda') {
+        const humanPlayer = aiPlayer === 'X' ? 'O' : 'X';
+        const availableMoves = this.getAvailableMoves();
+        
+        if (availableMoves.length === 0) return null;
+
+        let bestScore = -Infinity;
+        let moveEvaluations = [];
+
+        for (let move of availableMoves) {
+          this.board[move] = aiPlayer;
+          let score = this.minimax(this.board, 0, false, aiPlayer, humanPlayer);
+          this.board[move] = null;
+
+          moveEvaluations.push({ move, score });
+          if (score > bestScore) bestScore = score;
+        }
+
+        const topMoves = moveEvaluations.filter(e => e.score === bestScore);
+
+        if (personality === 'darth_vader') {
+          // Darth Vader (Agressivo): Prioriza centro (4) e cantos (0,2,6,8)
+          const preferenceOrder = [4, 0, 2, 6, 8, 1, 3, 5, 7];
+          topMoves.sort((a, b) => preferenceOrder.indexOf(a.move) - preferenceOrder.indexOf(b.move));
+          return topMoves[0].move;
+        } else {
+          // Yoda (Defensivo/Equilibrado): Escolhe aleatoriamente entre as melhores opções matemáticas
+          const randomIndex = Math.floor(Math.random() * topMoves.length);
+          return topMoves[randomIndex].move;
+        }
+      }
+
+      getAIMoveByLevel(level, aiPlayer) {
+        const availableMoves = this.getAvailableMoves();
+        if (availableMoves.length === 0) return null;
+
+        const getRandomMove = () => availableMoves[Math.floor(Math.random() * availableMoves.length)];
+
+        switch (level) {
+          case 'easy':
+            return getRandomMove();
+
+          case 'piece_of_cake':
+            return Math.random() < 0.2 ? this.getBestMove(aiPlayer, 'yoda') : getRandomMove();
+
+          case 'expert':
+            return Math.random() < 0.4 ? this.getBestMove(aiPlayer, 'yoda') : getRandomMove();
+
+          case 'daniel_san':
+            return Math.random() < 0.6 ? this.getBestMove(aiPlayer, 'yoda') : getRandomMove();
+
+          case 'miyagi':
+            return Math.random() < 0.75 ? this.getBestMove(aiPlayer, 'yoda') : getRandomMove();
+
+          case 'ninja':
+            return Math.random() < 0.88 ? this.getBestMove(aiPlayer, 'yoda') : getRandomMove();
+
+          case 'jedi':
+            return Math.random() < 0.95 ? this.getBestMove(aiPlayer, 'yoda') : getRandomMove();
+
+          case 'yoda':
+            return this.getBestMove(aiPlayer, 'yoda');
+
+          case 'darth_vader':
+            return this.getBestMove(aiPlayer, 'darth_vader');
+
+          default:
+            return this.getBestMove(aiPlayer, 'yoda');
+        }
+      }
+    }
+
+    /* ==========================================================================
+       CONEXÃO DO MOTOR COM A INTERFACE GRÁFICA (DOM)
+       ========================================================================== */
+    const engine = new TicTacToeEngine();
+
+    function updateUI() {
+      // Atualiza as células do tabuleiro (b0 até b8)
+      for (let i = 0; i < 9; i++) {
+        const cell = document.getElementById(`b${i}`);
+        cell.value = engine.board[i] || '';
+      }
+
+      // Atualiza a mensagem de status (#print)
+      const printEl = document.getElementById('print');
+      const playerSymbol = document.getElementById('player-symbol').value;
+      const level = document.getElementById('ai-level').value;
+
+      if (engine.isGameOver) {
+        if (engine.winner === 'TIE') {
+          printEl.innerText = 'Empate! Deu Velha!';
+          printEl.style.color = 'orangered';
+        } else {
+          if (level === 'pvp') {
+            printEl.innerText = `Jogador ${engine.winner} Venceu!`;
+            printEl.style.color = 'dodgerblue';
+          } else {
+            const winnerText = engine.winner === playerSymbol ? 'Você Venceu!' : 'A IA Venceu!';
+            printEl.innerText = winnerText;
+            printEl.style.color = engine.winner === playerSymbol ? 'dodgerblue' : 'red';
+          }
+        }
+      } else {
+        printEl.innerText = `Vez do jogador: ${engine.currentPlayer}`;
+        printEl.style.color = 'dodgerblue';
+      }
+
+      // Atualiza a caixa de texto da string do histórico (#in_jogo)
+      const inputHistory = document.getElementById('in_jogo');
+      if (document.activeElement !== inputHistory) {
+        inputHistory.value = engine.gameHistoryStr;
+      }
+    }
+
+    function checkAndTriggerAIMove() {
+      const level = document.getElementById('ai-level').value;
+      if (level === 'pvp' || engine.isGameOver) return;
+
+      const playerSymbol = document.getElementById('player-symbol').value;
+      const aiSymbol = playerSymbol === 'X' ? 'O' : 'X';
+
+      if (engine.currentPlayer === aiSymbol) {
+        setTimeout(() => {
+          const aiMove = engine.getAIMoveByLevel(level, aiSymbol);
+          if (aiMove !== null && aiMove !== undefined) {
+            engine.makeMove(aiMove);
+            updateUI();
+          }
+        }, 200);
+      }
+    }
+
+    function cellClicked(index) {
+      const level = document.getElementById('ai-level').value;
+      const playerSymbol = document.getElementById('player-symbol').value;
+
+      if (engine.isGameOver) return;
+
+      // Se for modo contra IA, impede o clique fora do turno do humano
+      if (level !== 'pvp' && engine.currentPlayer !== playerSymbol) return;
+
+      if (engine.makeMove(index)) {
+        updateUI();
+        checkAndTriggerAIMove();
+      }
+    }
+
+    function undoMove() {
+      const level = document.getElementById('ai-level').value;
+
+      if (engine.history.length === 0) return;
+
+      if (level === 'pvp' || engine.isGameOver) {
+        engine.undo();
+      } else {
+        // Contra a IA, desfaz 2 jogadas (a da IA e a do humano) para manter a vez do jogador
+        const playerSymbol = document.getElementById('player-symbol').value;
+        engine.undo(); // Desfaz jogada recente
+        if (engine.currentPlayer !== playerSymbol && engine.history.length > 0) {
+          engine.undo(); // Desfaz jogada anterior da IA
+        }
+      }
+      updateUI();
+    }
+
+    function loadCustomState() {
+      const str = document.getElementById('in_jogo').value;
+      engine.loadFromHistoryString(str);
+      updateUI();
+      checkAndTriggerAIMove();
+    }
+
+    function resetGame() {
+      engine.reset();
+      updateUI();
+      checkAndTriggerAIMove();
+    }
+
+    window.onload = () => {
+      resetGame();
+    };
+  </script>
+</body>
+</html>
       padding: 6px 12px;
       font-family: Verdana, Geneva, Tahoma, sans-serif;
       font-size: 14px;
