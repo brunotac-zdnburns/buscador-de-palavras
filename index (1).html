@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor de Cores & Transparência • Mini App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .bg-checkerboard {
+      background-color: #ffffff;
+      background-image: repeating-linear-gradient(45deg, #e5e7eb 25%, transparent 25%, transparent 75%, #e5e7eb 75%, #e5e7eb), 
+                        repeating-linear-gradient(45deg, #e5e7eb 25%, #ffffff 25%, #ffffff 75%, #e5e7eb 75%, #e5e7eb);
+      background-size: 20px 20px;
+      background-position: 0 0, 10px 10px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <header class="p-4 border-b border-slate-800 bg-slate-950 flex justify-between items-center">
+    <div>
+      <h1 class="text-xl font-bold text-amber-400">✨ Editor de Cores & Transparência</h1>
+      <p class="text-xs text-slate-400">Selecione cores, aplique transparência ou troque tons com gradação</p>
+    </div>
+    <a href="../" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 px-3 rounded border border-slate-700 transition">
+      ← Voltar ao Hub
+    </a>
+  </header>
+
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col gap-4">
+    
+    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-wrap gap-6 items-center justify-between">
+      
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">1. Escolha a Imagem</label>
+        <input type="file" id="inputImage" accept="image/*" class="text-sm text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer">
+      </div>
+
+      <div>
+        <label class="block text-xs text-slate-400 mb-1">2. Ação ao Selecionar Cor</label>
+        <select id="modeSelect" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg p-2 focus:ring-amber-500 focus:border-amber-500">
+          <option value="transparent">Deixar Transparente</option>
+          <option value="replace_direct">Substituir Cor (Sólido)</option>
+          <option value="replace_proportional" selected>Trocar Tom Proporcional (Manter Luz/Sombra)</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Cor Alvo:</span>
+          <div id="previewCorAlvo" class="w-7 h-7 rounded border border-slate-600 bg-slate-700" title="Clique na imagem para selecionar"></div>
+        </div>
+
+        <div id="boxNovaCor" class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">Nova Cor:</span>
+          <input type="color" id="inputNovaCor" value="#10b981" class="w-8 h-8 rounded border-0 bg-transparent cursor-pointer">
+        </div>
+      </div>
+
+      <div class="flex flex-col min-w-[180px]">
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-slate-400">Tolerância (Range):</span>
+          <span id="toleranceVal" class="text-amber-400 font-bold">15%</span>
+        </div>
+        <input type="range" id="tolerance" min="1" max="100" value="15" class="accent-amber-500 cursor-pointer">
+      </div>
+
+      <button id="btnDownload" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-medium text-sm py-2 px-4 rounded-lg transition shadow flex items-center gap-1 cursor-pointer">
+        💾 Baixar PNG
+      </button>
+    </div>
+
+    <div class="flex-1 bg-slate-950 rounded-xl border border-slate-800 p-4 flex items-center justify-center overflow-auto min-h-[400px]">
+      <div class="bg-checkerboard p-1 rounded border border-slate-700 shadow-inner max-w-full max-h-full overflow-auto">
+        <canvas id="mainCanvas" class="cursor-crosshair block max-w-full h-auto"></canvas>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const inputImage = document.getElementById('inputImage');
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const toleranceInput = document.getElementById('tolerance');
+    const toleranceVal = document.getElementById('toleranceVal');
+    const previewCorAlvo = document.getElementById('previewCorAlvo');
+    const inputNovaCor = document.getElementById('inputNovaCor');
+    const modeSelect = document.getElementById('modeSelect');
+    const btnDownload = document.getElementById('btnDownload');
+
+    let originalImageData = null;
+    let selectedColor = null; // {r, g, b, h, s, l}
+
+    // Funções de conversão de cor (RGB <-> HSL)
+    function rgbToHsl(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, l = (max + min) / 2;
+
+      if (max === min) {
+        h = s = 0; // acromático
+      } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return [h * 360, s, l];
+    }
+
+    function hslToRgb(h, s, l) {
+      h = h / 360;
+      let r, g, b;
+
+      if (s === 0) {
+        r = g = b = l; // acromático
+      } else {
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : { r: 0, g: 0, b: 0 };
+    }
+
+    // Atualizações nos inputs
+    toleranceInput.addEventListener('input', (e) => {
+      toleranceVal.innerText = `${e.target.value}%`;
+      if (selectedColor) processarImagem();
+    });
+
+    modeSelect.addEventListener('change', () => {
+      if (selectedColor) processarImagem();
+    });
+
+    inputNovaCor.addEventListener('input', () => {
+      if (selectedColor && modeSelect.value !== 'transparent') processarImagem();
+    });
+
+    // Carregar Imagem
+    inputImage.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        selectedColor = null;
+        previewCorAlvo.style.backgroundColor = 'transparent';
+        btnDownload.disabled = false;
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
+    // Clique na imagem para selecionar cor
+    canvas.addEventListener('click', (e) => {
+      if (!originalImageData) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const x = Math.floor((e.clientX - rect.left) * scaleX);
+      const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+      const index = (y * canvas.width + x) * 4;
+      const r = originalImageData.data[index];
+      const g = originalImageData.data[index + 1];
+      const b = originalImageData.data[index + 2];
+      const [h, s, l] = rgbToHsl(r, g, b);
+
+      selectedColor = { r, g, b, h, s, l };
+      previewCorAlvo.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+      processarImagem();
+    });
+
+    // Algoritmo Principal de Processamento
+    function processarImagem() {
+      if (!originalImageData || !selectedColor) return;
+
+      const mode = modeSelect.value;
+      const tolerancePct = parseInt(toleranceInput.value, 10) / 100;
+      // Tolerância convertida para escala da Distância Euclidiana de cores (0 a ~441)
+      const maxDistance = 441.67 * tolerancePct; 
+
+      const targetNewRgb = hexToRgb(inputNovaCor.value);
+      const [targetNewH, targetNewS, targetNewL] = rgbToHsl(targetNewRgb.r, targetNewRgb.g, targetNewRgb.b);
+
+      const newImageData = ctx.createImageData(originalImageData);
+      const data = newImageData.data;
+      const origData = originalImageData.data;
+
+      for (let i = 0; i < origData.length; i += 4) {
+        const r = origData[i];
+        const g = origData[i + 1];
+        const b = origData[i + 2];
+        const a = origData[i + 3];
+
+        // Cálculo da diferença cromática
+        const diff = Math.sqrt(
+          Math.pow(r - selectedColor.r, 2) +
+          Math.pow(g - selectedColor.g, 2) +
+          Math.pow(b - selectedColor.b, 2)
+        );
+
+        if (diff <= maxDistance) {
+          if (mode === 'transparent') {
+            data[i] = r; data[i + 1] = g; data[i + 2] = b;
+            data[i + 3] = 0; // Deixa transparente
+          } 
+          else if (mode === 'replace_direct') {
+            data[i] = targetNewRgb.r;
+            data[i + 1] = targetNewRgb.g;
+            data[i + 2] = targetNewRgb.b;
+            data[i + 3] = a;
+          } 
+          else if (mode === 'replace_proportional') {
+            // Converte o pixel atual para HSL
+            const [pixelH, pixelS, pixelL] = rgbToHsl(r, g, b);
+
+            // Mantém a variação relativa de Luminosidade e Saturação do pixel em relação à cor clicada
+            const diffL = pixelL - selectedColor.l;
+            const diffS = pixelS - selectedColor.s;
+
+            // Aplica o tom (Hue) da nova cor + a variação de brilho do pixel original
+            const finalH = targetNewH;
+            const finalS = Math.min(1, Math.max(0, targetNewS + diffS));
+            const finalL = Math.min(1, Math.max(0, targetNewL + diffL));
+
+            const [resR, resG, resB] = hslToRgb(finalH, finalS, finalL);
+
+            data[i] = resR;
+            data[i + 1] = resG;
+            data[i + 2] = resB;
+            data[i + 3] = a;
+          }
+        } else {
+          // Pixel fora da tolerância: Mantém o original
+          data[i] = r; data[i + 1] = g; data[i + 2] = b; data[i + 3] = a;
+        }
+      }
+
+      ctx.putImageData(newImageData, 0, 0);
+    }
+
+    // Baixar Imagem Processada
+    btnDownload.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'imagem-editada.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+  </script>
+</body>
+</html>
