@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tartaruga Logo - Desenho Mágico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    canvas {
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <header class="py-4 px-6 border-b border-slate-800 bg-slate-950 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center space-x-4">
+      <a href="../" class="inline-flex items-center px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 text-sm font-semibold rounded-lg border border-slate-700 transition-all">
+        ← Voltar para o Hub
+      </a>
+      <h1 class="text-xl font-bold text-amber-400 flex items-center gap-2">
+        <span>🐢</span> Tartaruga Logo
+      </h1>
+    </div>
+    <div class="text-xs text-slate-400 flex items-center gap-2">
+      <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+      Memória Local Ativa (`localStorage`)
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-6xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <section class="lg:col-span-5 flex flex-col gap-4">
+
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col gap-2">
+        <label for="codigoInput" class="text-sm font-semibold text-slate-300 flex justify-between">
+          <span>Comandos Logo:</span>
+          <span class="text-xs text-slate-400 font-normal">(Autosalvo no navegador)</span>
+        </label>
+        <textarea id="codigoInput" rows="7" spellcheck="false" class="w-full bg-slate-950 text-amber-300 font-mono text-sm p-3 rounded-lg border border-slate-800 focus:outline-none focus:border-amber-500 transition-colors placeholder-slate-600" placeholder="Exemplo:&#10;repita 4 [ pf 100 pd 90 ]"></textarea>
+        
+        <div class="flex gap-2">
+          <button id="btnExecutar" onclick="executarCodigo()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 px-4 rounded-lg transition-colors">
+            ▶ Executar
+          </button>
+          <button onclick="limparTela()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium py-2 px-4 rounded-lg transition-colors">
+            🧹 Limpar Tela
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-slate-300">Minhas Macros & Atalhos</h2>
+          <button onclick="resetarMacrosPadrao()" class="text-xs text-rose-400 hover:underline">
+            Restaurar Padrões
+          </button>
+        </div>
+        <div id="containerMacros" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+          </div>
+      </div>
+
+      <div class="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 text-xs text-slate-400 space-y-2">
+        <p class="font-semibold text-slate-300 mb-1">💡 Comandos Aceitos:</p>
+        <ul class="grid grid-cols-2 gap-x-2 gap-y-1 font-mono">
+          <li><b class="text-amber-400">pf X</b> / <b class="text-amber-400">fd X</b>: Frente Xpx</li>
+          <li><b class="text-amber-400">pt X</b> / <b class="text-amber-400">bk X</b>: Trás Xpx</li>
+          <li><b class="text-amber-400">pd X</b> / <b class="text-amber-400">rt X</b>: Direita X°</li>
+          <li><b class="text-amber-400">pe X</b> / <b class="text-amber-400">lt X</b>: Esquerda X°</li>
+          <li><b class="text-amber-400">mude-cor X</b>: red, #ff0...</li>
+          <li><b class="text-amber-400">prox-cor</b>: Avança paleta</li>
+          <li><b class="text-amber-400">repita N [ ]</b>: Loop</li>
+          <li><b class="text-amber-400">aprenda N [ ]</b>: Cria Macro</li>
+        </ul>
+      </div>
+
+    </section>
+
+    <section class="lg:col-span-7 flex flex-col items-center justify-center bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-inner min-h-[400px]">
+      <canvas id="logoCanvas" width="500" height="500" class="bg-slate-900 rounded-lg shadow-lg border border-slate-800 max-w-full h-auto"></canvas>
+    </section>
+
+  </main>
+
+  <script>
+    const canvas = document.getElementById('logoCanvas');
+    const ctx = canvas.getContext('2d');
+    const codigoInput = document.getElementById('codigoInput');
+    const containerMacros = document.getElementById('containerMacros');
+
+    // Paleta de cores padrão para o comando "prox-cor"
+    const paletaCores = ['#f59e0b', '#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#ef4444', '#06b6d4'];
+    let indiceCorPaleta = 0;
+
+    // Estado da Tartaruga
+    let turtle = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      angulo: 0, // 0 graus = apontando para cima
+      cor: '#f59e0b',
+      espessura: 2,
+      penDown: true
+    };
+
+    // Dicionário de Macros (Funções aprendidas)
+    let macros = {};
+
+    // Exemplo de fábrica
+    const EXEMPLOS_PADRAO = {
+      "Arco-Íris": "mude-espessura 3\nrepita 36 [\n  prox-cor\n  pf 60 pt 60 pd 10\n]",
+      "Espiral": "mude-cor #3b82f6\nrepita 40 [\n  pf 40 pd 123\n  prox-cor\n]",
+      "Estrela": "aprenda estrela [\n  repita 5 [\n    pf 120 pd 144\n  ]\n]\nestrela"
+    };
+
+    // ----------------------------------------------------
+    // INICIALIZAÇÃO & LOCALSTORAGE
+    // ----------------------------------------------------
+    function init() {
+      carregarMacros();
+      carregarRascunhoCodigo();
+      limparTela();
+
+      // Salva o rascunho enquanto o usuário digita
+      codigoInput.addEventListener('input', () => {
+        localStorage.setItem('turtle_logo_rascunho', codigoInput.value);
+      });
+    }
+
+    function carregarMacros() {
+      const salvas = localStorage.getItem('turtle_logo_macros');
+      if (salvas) {
+        try {
+          macros = JSON.parse(salvas);
+        } catch (e) {
+          macros = { ...EXEMPLOS_PADRAO };
+        }
+      } else {
+        macros = { ...EXEMPLOS_PADRAO };
+      }
+      renderizarBotoesMacros();
+    }
+
+    function salvarMacrosLocal() {
+      localStorage.setItem('turtle_logo_macros', JSON.stringify(macros));
+      renderizarBotoesMacros();
+    }
+
+    function resetarMacrosPadrao() {
+      if (confirm("Deseja restaurar as macros de exemplo originais?")) {
+        macros = { ...EXEMPLOS_PADRAO };
+        salvarMacrosLocal();
+      }
+    }
+
+    function carregarRascunhoCodigo() {
+      const rascunho = localStorage.getItem('turtle_logo_rascunho');
+      if (rascunho !== null) {
+        codigoInput.value = rascunho;
+      } else {
+        codigoInput.value = EXEMPLOS_PADRAO["Arco-Íris"];
+      }
+    }
+
+    function renderizarBotoesMacros() {
+      containerMacros.innerHTML = '';
+      Object.keys(macros).forEach(nome => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'inline-flex items-center bg-slate-700 rounded-lg overflow-hidden border border-slate-600';
+
+        const btnExec = document.createElement('button');
+        btnExec.className = 'px-3 py-1 text-xs text-amber-300 font-medium hover:bg-slate-600 transition-colors';
+        btnExec.innerText = nome;
+        btnExec.onclick = () => {
+          codigoInput.value = macros[nome];
+          localStorage.setItem('turtle_logo_rascunho', codigoInput.value);
+          executarCodigo();
+        };
+
+        const btnDel = document.createElement('button');
+        btnDel.className = 'px-2 py-1 text-xs text-rose-400 hover:bg-rose-900/50 transition-colors';
+        btnDel.innerText = '×';
+        btnDel.title = 'Excluir macro';
+        btnDel.onclick = (e) => {
+          e.stopPropagation();
+          delete macros[nome];
+          salvarMacrosLocal();
+        };
+
+        wrapper.appendChild(btnExec);
+        wrapper.appendChild(btnDel);
+        containerMacros.appendChild(wrapper);
+      });
+    }
+
+    // ----------------------------------------------------
+    // RENDERIZAÇÃO DA TARTARUGA E TELA
+    // ----------------------------------------------------
+    function limparTela() {
+      ctx.fillStyle = '#0f172a'; // Fundo slate-900
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      turtle.x = canvas.width / 2;
+      turtle.y = canvas.height / 2;
+      turtle.angulo = 0;
+      turtle.cor = '#f59e0b';
+      turtle.espessura = 2;
+      turtle.penDown = true;
+      desenharTartaruga();
+    }
+
+    function desenharTartaruga() {
+      ctx.save();
+      ctx.translate(turtle.x, turtle.y);
+      ctx.rotate((turtle.angulo * Math.PI) / 180);
+
+      // Triângulo representando a tartaruga
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(7, 8);
+      ctx.lineTo(-7, 8);
+      ctx.closePath();
+      ctx.fillStyle = '#10b981';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // ----------------------------------------------------
+    // INTERPRETADOR LOGO
+    // ----------------------------------------------------
+    function executarCodigo() {
+      const codigo = codigoInput.value;
+      const tokens = tokenizar(codigo);
+      processarTokens(tokens);
+      desenharTartaruga();
+    }
+
+    function tokenizar(str) {
+      // Separa mantendo colchetes como tokens independentes
+      const limpo = str.replace(/\[/g, ' [ ').replace(/\]/g, ' ] ');
+      return limpo.trim().split(/\s+/).filter(t => t.length > 0);
+    }
+
+    function processarTokens(tokens) {
+      let i = 0;
+      while (i < tokens.length) {
+        let token = tokens[i].toLowerCase();
+
+        // 1. Aprender Nova Macro (aprenda nome [ comandos ])
+        if (token === 'aprenda') {
+          const nomeMacro = tokens[i + 1];
+          if (tokens[i + 2] === '[') {
+            let profundidade = 1;
+            let inicio = i + 3;
+            let fim = inicio;
+            while (fim < tokens.length && profundidade > 0) {
+              if (tokens[fim] === '[') profundidade++;
+              if (tokens[fim] === ']') profundidade--;
+              fim++;
+            }
+            const subTokens = tokens.slice(inicio, fim - 1);
+            macros[nomeMacro] = subTokens.join(' ');
+            salvarMacrosLocal();
+            i = fim;
+            continue;
+          }
+        }
+
+        // 2. Loop Repita (repita N [ comandos ])
+        if (token === 'repita') {
+          const vezes = parseInt(tokens[i + 1], 10) || 1;
+          if (tokens[i + 2] === '[') {
+            let profundidade = 1;
+            let inicio = i + 3;
+            let fim = inicio;
+            while (fim < tokens.length && profundidade > 0) {
+              if (tokens[fim] === '[') profundidade++;
+              if (tokens[fim] === ']') profundidade--;
+              fim++;
+            }
+            const subTokens = tokens.slice(inicio, fim - 1);
+            for (let v = 0; v < vezes; v++) {
+              processarTokens(subTokens);
+            }
+            i = fim;
+            continue;
+          }
+        }
+
+        // 3. Checa se o token é uma macro já aprendida
+        if (macros[token]) {
+          const subTokens = tokenizar(macros[token]);
+          processarTokens(subTokens);
+          i++;
+          continue;
+        }
+
+        // 4. Comandos de Movimento e Configuração
+        const val = parseFloat(tokens[i + 1]);
+
+        switch (token) {
+          case 'pf':
+          case 'fd':
+          case 'para-frente':
+            moverTartaruga(val || 0);
+            i += 2;
+            break;
+          case 'pt':
+          case 'bk':
+          case 'para-tras':
+            moverTartaruga(-(val || 0));
+            i += 2;
+            break;
+          case 'pd':
+          case 'rt':
+          case 'para-direita':
+            turtle.angulo += (val || 0);
+            i += 2;
+            break;
+          case 'pe':
+          case 'lt':
+          case 'para-esquerda':
+            turtle.angulo -= (val || 0);
+            i += 2;
+            break;
+          case 'mude-cor':
+          case 'mudecor':
+            turtle.cor = tokens[i + 1] || '#f59e0b';
+            i += 2;
+            break;
+          case 'prox-cor':
+            indiceCorPaleta = (indiceCorPaleta + 1) % paletaCores.length;
+            turtle.cor = paletaCores[indiceCorPaleta];
+            i += 1;
+            break;
+          case 'mude-espessura':
+          case 'mudeespessura':
+            turtle.espessura = val || 2;
+            i += 2;
+            break;
+          case 'usar-lapis':
+          case 'ul':
+            turtle.penDown = true;
+            i += 1;
+            break;
+          case 'usar-borracha':
+          case 'ub':
+          case 'desligar-lapis':
+            turtle.penDown = false;
+            i += 1;
+            break;
+          case 'limpar':
+          case 'lc':
+            limparTela();
+            i += 1;
+            break;
+          default:
+            i++;
+            break;
+        }
+      }
+    }
+
+    function moverTartaruga(distancia) {
+      const rad = ((turtle.angulo - 90) * Math.PI) / 180;
+      const novoX = turtle.x + distancia * Math.cos(rad);
+      const novoY = turtle.y + distancia * Math.sin(rad);
+
+      if (turtle.penDown) {
+        ctx.beginPath();
+        ctx.moveTo(turtle.x, turtle.y);
+        ctx.lineTo(novoX, novoY);
+        ctx.strokeStyle = turtle.cor;
+        ctx.lineWidth = turtle.espessura;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+      }
+
+      turtle.x = novoX;
+      turtle.y = novoY;
+    }
+
+    // Inicialização ao carregar a página
+    window.onload = init;
+  </script>
+</body>
+</html>
